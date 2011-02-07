@@ -1,0 +1,5 @@
+WhatFont
+--------
+
+A bookmarklet to detect exactly which font is used on any elements of web pages. For more information see [http://riobard.com/project/whatfont/](http://riobard.com/project/whatfont/). 
+
