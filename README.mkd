@@ -3,7 +3,4 @@ WhatFont
 
 A bookmarklet to detect exactly which font is used on any elements of web pages.
 
-Originally made by [Willow](http://chengyinliu.com/) available [here](http://chengyinliu.com/whatfont.html). 
-
-This fork added shape detection using HTML5 canvas. For more information see [http://riobard.com/project/whatfont/](http://riobard.com/project/whatfont/). 
 

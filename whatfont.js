@@ -1,14 +1,18 @@
 ;(function(window){
   var document      = window.document;
+  var body          = body = document.querySelector('body');
   var ALPHABET      = 'abcdefghijklmnopqrstuvwxyz';  // alphabet to draw on canvas
   var WIDTH         = 600;          // canvas width in px
   var HEIGHT        = 50;           // canvas height in px
   var SIZE          = 40;           // font size to draw in px
   var FILLSTYLE     = 'rgb(0,0,0)'; // canvas fill style
   var TEXTBASELINE  = 'top';        // canvas text baseline
-  var TIPSTYLE      = 'background:rgba(0,0,0,.8);border:1px solid #000;border-radius:5px;color:#fff;display:none;font:14px sans-serif;padding:.5em;position:absolute;text-shadow:#000 1px 1px 2px;z-index:99999;';
+  var BASE_STYLE    = 'background:rgba(0,0,0,.8);border:1px solid #000;border-radius:5px;color:#fff;font:14px sans-serif;padding:.5em;position:absolute;text-shadow:#000 1px 1px 2px;z-index:99999;';
   var TIP           = document.createElement('div');
-  TIP.style.cssText = TIPSTYLE;
+  var CONTROL       = document.createElement('div');
+  TIP.style.cssText = BASE_STYLE + "display:none;";
+  CONTROL.style.cssText = BASE_STYLE + "top:10px;right:10px;";
+  CONTROL.appendChild(document.createTextNode("Exit WhatFont"));
 
   function mkTextPixelArray(cssfontfamily) {
     // draw the alphabet on canvas using cssfontfamily
@@ -60,11 +64,7 @@
     e.stopPropagation();
   }
 
-  function activate() {
-    // add tip box to DOM
-    document.body.appendChild(TIP);
-
-    // detect font upon mouse movement on visible elements
+  function onAllVisibleElementsDo(func) {
     var elements = document.querySelectorAll('body *');
     for (var i in elements) {
       if (1 == elements[i].nodeType &&
@@ -72,10 +72,35 @@
         elements[i].addEventListener('mousemove', update, false);
       }
     }
+  }
 
+  function activate() {
+    var restore;
+
+    // add tip box to DOM
+    body.appendChild(TIP);
+    
+    // detect font upon mouse movement on visible elements
+    onAllVisibleElementsDo(function (elem) { 
+      elem.addEventListener('mousemove', update, false);
+    });
+    
     // hide tip when mouse out <body> tag
-    var body = document.querySelector('body');
     body.addEventListener('mouseout', hideTip, false);
+    
+    // add controller
+    body.appendChild(CONTROL);
+
+    // clean up
+    restore = function (e) {
+      onAllVisibleElementsDo(function (elem) {
+        elem.removeEventListener('mousemove', update, false);
+      });
+      body.removeChild(TIP);
+      body.removeChild(CONTROL);
+    } 
+    
+    CONTROL.addEventListener('mouseup', restore, false);
   }
 
   activate();
