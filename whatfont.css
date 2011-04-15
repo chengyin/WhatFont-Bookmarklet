@@ -29,12 +29,16 @@
 }
 
 .com_chengyinliu_wf_basic {
+  background: none;
+  border: 0;
   color: #fff;
   font: 14px/1.2 "Helvetica Neue",sans-serif;
+  height: auto;
   margin: 0;
   padding: 0;
   text-align: left;
   text-transform: none;
+  width: auto;
   -webkit-font-smoothing: antialiased;
 }
 
