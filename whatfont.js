@@ -1,22 +1,25 @@
 (function (window) {
-  var VER         = "1.3",
-    document      = window.document,
-    body          = document.querySelector('body'),
-    // Settings for font detector
-    ALPHABET      = 'abcdefghijklmnopqrstuvwxyz',  // alphabet to draw on canvas
-    WIDTH         = 600,          // canvas width in px
-    HEIGHT        = 50,           // canvas height in px
-    SIZE          = 40,           // font size to draw in px
-    FILLSTYLE     = 'rgb(0,0,0)', // canvas fill style
-    TEXTBASELINE  = 'top',        // canvas text baseline
-    // DOM elements
-    TIP, 
-    EXIT,
-    CONTROL,
-    STYLESHEET_URL = "http://chengyinliu.com/wf.css?ver=1.3",
-    STYLE_PRE      = 'com_chengyinliu_wf_',
-    PANELS         = [],
-    PROMPT_TO;
+  var VER         = "1.3.1",
+  document      = window.document,
+  body          = document.querySelector('body'),
+  // Settings for font detector
+  ALPHABET      = 'abcdefghijklmnopqrstuvwxyz',  // alphabet to draw on canvas
+  WIDTH         = 600,          // canvas width in px
+  HEIGHT        = 50,           // canvas height in px
+  SIZE          = 40,           // font size to draw in px
+  FILLSTYLE     = 'rgb(0,0,0)', // canvas fill style
+  TEXTBASELINE  = 'top',        // canvas text baseline
+  // DOM elements
+  TIP, 
+  EXIT,
+  CONTROL,
+  STYLESHEET_URL = "whatfont.css?ver=" + VER,
+  STYLE_PRE      = 'com_chengyinliu_wf_',
+  PANELS         = [],
+  PROMPT_TO,
+  CANVAS_SUPPORT = !!(document.createElement("canvas").getContext),
+  fontServices = {},
+  callbackFunc = {};
   
   function getClassName(name) {
     var className = "", n;
@@ -67,6 +70,96 @@
     return e;
   }
   
+  function setEventPosOffset(elem, e, offsetX, offsetY) {
+    var x, y;
+    x = offsetX + e.pageX;
+    y = offsetY + e.pageY;
+    
+    elem.style.left = x + 'px';
+    elem.style.top = y + 'px';
+  }
+  
+  // Fix Event for IE8-
+  // written by Dean Edwards, 2005
+  // with input from Tino Zijdel, Matthias Miller, Diego Perini
+
+  // http://dean.edwards.name/weblog/2005/10/add-event/
+
+  function addEvent(element, type, handler) {
+    if (element.addEventListener) {
+      element.addEventListener(type, handler, false);
+    } else {
+      // assign each event handler a unique ID
+      if (!handler.$$guid) handler.$$guid = addEvent.guid++;
+      // create a hash table of event types for the element
+      if (!element.events) element.events = {};
+      // create a hash table of event handlers for each element/event pair
+      var handlers = element.events[type];
+      if (!handlers) {
+        handlers = element.events[type] = {};
+        // store the existing event handler (if there is one)
+        if (element["on" + type]) {
+          handlers[0] = element["on" + type];
+        }
+      }
+      // store the event handler in the hash table
+      handlers[handler.$$guid] = handler;
+      // assign a global event handler to do all the work
+      element["on" + type] = handleEvent;
+    }
+  };
+  // a counter used to create unique IDs
+  addEvent.guid = 1;
+
+  function removeEvent(element, type, handler) {
+    if (element.removeEventListener) {
+      element.removeEventListener(type, handler, false);
+    } else {
+      // delete the event handler from the hash table
+      if (element.events && element.events[type]) {
+        delete element.events[type][handler.$$guid];
+      }
+    }
+  };
+
+  function handleEvent(event) {
+    var returnValue = true;
+    // grab the event object (IE uses a global event object)
+    event = event || fixEvent(((this.ownerDocument || this.document || this).parentWindow || window).event);
+    // get a reference to the hash table of event handlers
+    var handlers = this.events[event.type];
+    // execute each event handler
+    for (var i in handlers) {
+      this.$$handleEvent = handlers[i];
+      if (this.$$handleEvent(event) === false) {
+        returnValue = false;
+      }
+    }
+    return returnValue;
+  };
+
+  function fixEvent(event) {
+    var e = document.documentElement;
+    
+    // add W3C standard event methods
+    event.preventDefault = fixEvent.preventDefault;
+    event.stopPropagation = fixEvent.stopPropagation;
+    
+    // add pageX/page Y
+
+    event.pageX = event.clientX + (e.scrollLeft || body.scrollLeft);
+    event.pageY = event.clientY + (e.scrollTop || body.scrollTop);
+    
+    return event;
+  };
+  fixEvent.preventDefault = function() {
+    this.returnValue = false;
+  };
+  fixEvent.stopPropagation = function() {
+    this.cancelBubble = true;
+  };
+  // End of Fix Event for IE8-
+  
   function mkTextPixelArray(cssfontfamily) {
     // draw the alphabet on canvas using cssfontfamily
     var canvas       = document.createElement('canvas'),
@@ -110,12 +203,14 @@
     
     return '(fallback)';  // no match; use fallback font
   }
+  
+  function firstFont(cssfontfamily) {
+    return cssfontfamily.split(',')[0].replace(/^\s*/, "").replace(/\s*$/, "");
+  }
 
   function tip(string, x, y) {
     TIP.querySelector('.' + getClassName('tipinfo')).innerHTML = string;
     TIP.style.display = 'inline-block';
-    TIP.style.left = (x + 12) + 'px';
-    TIP.style.top = (y + 12) + 'px';
   }
 
   function hideTip() {
@@ -123,14 +218,23 @@
   }
   
   function getCSSProperty(elem, prop) {
-    var val = window.getComputedStyle(elem, null)
-                    .getPropertyValue(prop);
+    var val;
+    if (window.getComputedStyle) {
+      val = window.getComputedStyle(elem, null).getPropertyValue(prop);
+    } else if (elem.currentStyle) {
+      val = elem.currentStyle[prop];
+    }
+    
     return (val || '');
   }
   
   function getFontInUse(elem) {
     var cssfontfamily = getCSSProperty(elem, 'font-family');
-    return fontInUse(cssfontfamily);
+    if (CANVAS_SUPPORT) {
+      return fontInUse(cssfontfamily);
+    } else {
+      return firstFont(cssfontfamily);
+    }
   }
   
   // function showPromptOnTip() {
@@ -143,7 +247,7 @@
   // 
   
   function update(e) {
-    var cn = getCSSProperty(this, 'class') || '', remover;
+    var cn = getCSSProperty(this, 'class') || '', remover, x, y;
     // hidePromptOnTip();
     // if (PROMPT_TO) {
     //   window.clearTimeout(PROMPT_TO);
@@ -153,13 +257,14 @@
     // this.setAttribute('class', cn + ' ' + getClassName('highlighted'));
     
 
-    remover = this.addEventListener('mouseout', function () {
+    // remover = this.addEventListener('mouseout', function () {
       //this.setAttribute('class', cn);
       //this.setAttribute('class', getCSSProperty(this, 'class').replace(getClassName('highlighted'), ''));
-      this.removeEventListener('mouseout', remover, false);
-    }, false);
+    //   this.removeEventListener('mouseout', remover, false);
+    // }, false);
     
-    tip(getFontInUse(this), e.pageX, e.pageY);
+    tip(getFontInUse(this));
+    setEventPosOffset(TIP, e, 12, 12);
     e.stopPropagation();
   }
 
@@ -193,7 +298,7 @@
     
     fHTML = ff.join(", ") + ";";
     
-    return [createElem('dt', 'family', "Font Stack"), createElem('dd', '', fHTML)];
+    return [createElem('dt', 'family', "Font Family"), createElem('dd', '', fHTML)];
   }
   
   function getPanelFontStyleWeight(elem) {
@@ -233,12 +338,12 @@
       title = createElem('div', 'panel_title', [text, close]);
     
     close.setAttribute('title', 'Close');
-    close.addEventListener('click', function (e) {
+    addEvent(close, 'click', function (e) {
       var panel = title.parentNode;
       // delete panel.on_element.wf_panel;
       body.removeChild(panel);
       e.stopPropagation();
-    }, false);
+    });
       
     return title;
   }
@@ -248,26 +353,27 @@
       panelDetailList = getPanelDetailList(elem),
       panel = createElem('div', ["elem", "panel"], [panelTitle, panelDetailList]);
     
-    panel.addEventListener('click', function (e) {
+    addEvent(panel, 'click', function (e) {
       this.querySelector('dl').style['-webkit-animation'] = "none";
       this.querySelector('.com_chengyinliu_wf_panel_title').style['-webkit-animation'] = "none";
       body.removeChild(this);
       body.appendChild(this);
 
       e.stopPropagation();
-    }, false);
+    });
     
     return panel;
   }
   
   function pin(e) {
-    var panel, height, cn = getCSSProperty(this, 'class');
+    var panel, height, cn = getCSSProperty(this, 'class'), x, y;
     
     hideTip();
     
     panel = getPanel(this);
-    panel.style.top = e.pageY + 12 + "px";
-    panel.style.left = e.pageX - 13 + 'px';
+    
+    setEventPosOffset(panel, e, -13, 12);
+    
     body.appendChild(panel);
     
     // this.setAttribute('class', getClassName('highlighted') + cn);
@@ -282,8 +388,8 @@
     var p;
     
     onAllVisibleElementsDo(function (elem) {
-      elem.removeEventListener('mousemove', update, false);
-      elem.removeEventListener('click', pin, false);
+      removeEvent(elem, 'mousemove', update);
+      removeEvent(elem, 'click', pin);
     });
     
     body.removeChild(TIP);
@@ -304,13 +410,13 @@
       e.stopPropagation();
     }
   }
-
+  
   function activate() {
     // add stylesheet
     var link = document.createElement("link"), exit, help;
-    link.setAttribute("rel", "stylesheet");
-    link.setAttribute("href", STYLESHEET_URL);
-    document.querySelector("head").appendChild(link);
+        link.setAttribute("rel", "stylesheet");
+        link.setAttribute("href", STYLESHEET_URL);
+        document.querySelector("head").appendChild(link);
     
     // TIP = createElem('div', ["elem", "tip"], [createElem('div', ['tipinfo']), createElem('div', ['tipprompt'], 'Click to see details')]);
     TIP = createElem('div', ["tip"], [createElem('div', ["elem", 'tipinfo'])]);
@@ -321,12 +427,12 @@
     // detect font upon mouse movement on visible elements
     // click to pin
     onAllVisibleElementsDo(function (elem) { 
-      elem.addEventListener('mousemove', update, false);
-      elem.addEventListener('click', pin, false);
+      addEvent(elem, 'mousemove', update);
+      addEvent(elem, 'click', pin);
     });
     
     // hide tip when mouse out <body> tag
-    body.addEventListener('mouseout', hideTip, false);
+    addEvent(body, 'mouseout', hideTip);
     
     // add tip box to DOM
     body.appendChild(TIP);
@@ -335,8 +441,8 @@
     body.appendChild(CONTROL);
 
     // clean up
-    exit.addEventListener('mouseup', restore, false);
-    body.addEventListener('keydown', shortcut, false);
+    addEvent(exit, 'mouseup', restore);
+    addEvent(body, 'keydown', shortcut);
   }
   
   activate();
