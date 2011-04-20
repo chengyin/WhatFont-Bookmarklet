@@ -14,6 +14,7 @@
   EXIT,
   CONTROL,
   STYLESHEET_URL = "whatfont.css?ver=" + VER,
+  STYLELINK,
   STYLE_PRE      = 'com_chengyinliu_wf_',
   PANELS         = [],
   PROMPT_TO,
@@ -53,7 +54,7 @@
       e.innerHTML = content;
     } else if (content.constructor === Array) {
       for (c = 0; c < content.length; c += 1) {
-        e.appendChild(content[c]);
+        content[c] ? e.appendChild(content[c]) : null;
       }
     } else {
       e.appendChild(content);
@@ -263,8 +264,15 @@
     //   this.removeEventListener('mouseout', remover, false);
     // }, false);
     
-    tip(getFontInUse(this));
-    setEventPosOffset(TIP, e, 12, 12);
+    if (this.tagName === 'IMG') {
+      tip(getFontInUse(this) + " (May be incorrect on images)");
+    } else if (this.tagName === 'EMBED'){
+      tip(getFontInUse(this) + " (May be incorrect on Flash)");
+    } else {
+      tip(getFontInUse(this));    // Update the content of the tip
+    }
+    
+    setEventPosOffset(TIP, e, 12, 12);    // Update postition of the tip
     e.stopPropagation();
   }
 
@@ -323,11 +331,41 @@
     return [createElem('dl', 'size_lh', [sdl, lhdl])];
   }
   
+  function getPanelExternal(elem) {
+    var wtfform, wtflink, tools = [];
+    
+    // Use WhatTheFont service for IMG
+    if (elem.tagName === 'IMG' && elem.src) {
+      // Build a form for WhatTheFont services
+      wtfform = document.createElement("form");
+      wtfform.setAttribute("action", "http://new.myfonts.com/WhatTheFont/upload.php");
+      wtfform.setAttribute("method", "POST");
+      wtfform.setAttribute("target", "_blank");
+      wtfform.innerHTML = '<input type="hidden" name="MAX_FILE_SIZE" value="2000000"><input size="37" name="upload_url" type="text" value="' + elem.src + '">';
+      wtfform.style.display = "none";
+      
+      wtflink = createElem('a', 'wtf_link', 'MyFonts WhatTheFont for images &raquo;');
+      addEvent(wtflink, 'click', function (e) {
+        // Submit the form
+        wtfform.submit();
+      });
+      
+      tools = tools.concat([
+        createElem('dt', 'wtf', 'External Services'),
+        createElem('dd', 'wtf', [wtfform, wtflink])
+      ]);
+    }
+    
+    return tools.length ? createElem('dl', 'external', tools) : null;
+  }
+  
+  
   function getPanelDetailList(elem) {
     var ff = getPanelFontFamily(elem),
       fsw = getPanelFontStyleWeight(elem),
       fslh = getPanelSizeLineHeight(elem),
-      dl = createElem('dl', '', ff.concat(fsw).concat(fslh));
+      ext = getPanelExternal(elem),
+      dl = createElem('dl', '', ff.concat(fsw).concat(fslh).concat(ext));
       
     return dl;
   }
@@ -394,6 +432,8 @@
     
     body.removeChild(TIP);
     body.removeChild(CONTROL);
+    STYLELINK.parentNode.removeChild(STYLELINK);
+    
     for (p = 0; p < PANELS.length; p += 1) {
       if (PANELS[p].parentNode === body) {
         body.removeChild(PANELS[p]);
@@ -413,10 +453,12 @@
   
   function activate() {
     // add stylesheet
-    var link = document.createElement("link"), exit, help;
-        link.setAttribute("rel", "stylesheet");
-        link.setAttribute("href", STYLESHEET_URL);
-        document.querySelector("head").appendChild(link);
+    var exit, help;
+    
+    STYLELINK = document.createElement("link")
+    STYLELINK.setAttribute("rel", "stylesheet");
+    STYLELINK.setAttribute("href", STYLESHEET_URL);
+    document.querySelector("head").appendChild(STYLELINK);
     
     // TIP = createElem('div', ["elem", "tip"], [createElem('div', ['tipinfo']), createElem('div', ['tipprompt'], 'Click to see details')]);
     TIP = createElem('div', ["tip"], [createElem('div', ["elem", 'tipinfo'])]);
