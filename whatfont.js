@@ -197,12 +197,13 @@
 
     for (i = 0; i < fonts.length; i += 1) {
       a1 = mkTextPixelArray(fonts[i]);
-      if (sameArray(a0, a1)) {
+      if (sameArray(a0, a1)
+          && sameArray(mkTextPixelArray(fonts[i] + ',serif'), mkTextPixelArray(fonts[i] + ',sans-serif'))) {
+        // rendered fonts match, and font really is installed
         return fonts[i].replace(/^\s*/, "").replace(/\s*$/, "");
       }
     }
-    
-    return '(fallback)';  // no match; use fallback font
+    return "default";
   }
   
   function firstFont(cssfontfamily) {
@@ -287,10 +288,11 @@
   }
   
   function getPanelFontFamily(elem) {
-    var ff, fiu, font, fHTML;
+    var ff, fiu, fiuFound, font, fHTML;
     
     ff = getCSSProperty(elem, 'font-family').split(',');
     fiu = getFontInUse(elem);
+    fiuFound = false;
     for (font = 0; font < ff.length; font += 1) {
       ff[font] = ff[font].replace(/^\s*/, "").replace(/\s*$/, "").replace(/;$/, "");
     }
@@ -300,11 +302,15 @@
         ff[font] = "<span class='" + getClassName("fniu") + "'>" + ff[font] + "</span>";
       } else {
         ff[font] = "<span class='" + getClassName("fiu") + "'>" + ff[font] + "</span>";
+        fiuFound = true;
         break;
       }
     }
     
     fHTML = ff.join(", ") + ";";
+    if (!fiuFound) {
+      fHTML += " (<span class='" + getClassName("fiu") + "'>" + fiu + "</span>)";
+    }
     
     return [createElem('dt', 'family', "Font Family"), createElem('dd', '', fHTML)];
   }
