@@ -46,13 +46,23 @@
 }
 
 .com_chengyinliu_wf_basic * {
-  color: #fff;
+  color: inherit;
+}
+
+.com_chengyinliu_wf_basic a,
+.com_chengyinliu_wf_basic a:visited
+.com_chengyinliu_wf_basic a:hover,
+.com_chengyinliu_wf_basic a:active {
+  color: inherit;
+  cursor: pointer !important;
+  text-decoration: none;
 }
 
 .com_chengyinliu_wf_elem {
   background: rgba(0,0,0,.8);
   border: 1px solid #000;
   border-radius: 5px;
+  color: #fff;
   padding: .5em;
   text-shadow: #000 1px 1px 2px;
   z-index: 2147483647;
@@ -76,14 +86,10 @@
 }*/
 
 .com_chengyinliu_wf_control {
-  list-style: none;
   padding: 0;
   position: fixed;
   right: 10px;
   top: 10px;
-}
-
-.com_chengyinliu_wf_control div {
 }
 
 .com_chengyinliu_wf_exit {
