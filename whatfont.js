@@ -1,5 +1,5 @@
 (function (window) {
-  var VER         = "1.3.1",
+  var VER         = "1.3.2",      // Current version
   document      = window.document,
   body          = document.querySelector('body'),
   // Settings for font detector
@@ -10,19 +10,21 @@
   FILLSTYLE     = 'rgb(0,0,0)', // canvas fill style
   TEXTBASELINE  = 'top',        // canvas text baseline
   // DOM elements
-  TIP, 
-  EXIT,
-  CONTROL,
-  STYLESHEET_URL = "whatfont.css?ver=" + VER,
-  STYLELINK,
-  STYLE_PRE      = 'com_chengyinliu_wf_',
-  PANELS         = [],
+  TIP,      // Tooltip
+  EXIT,     // Exit control
+  CONTROL,  // Controller wrapper
+  // Settings
+  STYLESHEET_URL = "http://chengyinliu.com/wf.css?ver=" + VER,
+  EXTERNAL_DISCLAIMER = "http://chengyinliu.com/whatfont.html#whatfont-external",
+  STYLELINK,                                // <link> for CSS
+  STYLE_PRE      = 'com_chengyinliu_wf_',   // Avoid conflicts
+  PANELS         = [],                      // Panels inserted
   PROMPT_TO,
-  CANVAS_SUPPORT = !!(document.createElement("canvas").getContext),
-  fontServices = {},
-  callbackFunc = {};
+  // For IE8-
+  CANVAS_SUPPORT = !!(document.createElement("canvas").getContext);
   
   function getClassName(name) {
+    // Generate class name with prefix
     var className = "", n;
     
     // Multiple names
@@ -36,6 +38,7 @@
   }
   
   function createElem(tag, className, content, attr) {
+    // Shortcut for generating DOM element
     var e = document.createElement(tag), c;
     className = className || [];
     content = content || '';
@@ -54,7 +57,11 @@
       e.innerHTML = content;
     } else if (content.constructor === Array) {
       for (c = 0; c < content.length; c += 1) {
-        content[c] ? e.appendChild(content[c]) : null;
+        if (typeof content[c] === 'string') {
+          e.appendChild(document.createTextNode(content[c]));
+        } else {
+          content[c] ? e.appendChild(content[c]) : null;
+        }
       }
     } else {
       e.appendChild(content);
@@ -72,6 +79,7 @@
   }
   
   function setEventPosOffset(elem, e, offsetX, offsetY) {
+    // Shortcut for put element around the event
     var x, y;
     x = offsetX + e.pageX;
     y = offsetY + e.pageY;
@@ -80,7 +88,7 @@
     elem.style.top = y + 'px';
   }
   
-  // Fix Event for IE8-
+  /* Fix Event for IE8- */
   // written by Dean Edwards, 2005
   // with input from Tino Zijdel, Matthias Miller, Diego Perini
 
@@ -159,7 +167,7 @@
   fixEvent.stopPropagation = function() {
     this.cancelBubble = true;
   };
-  // End of Fix Event for IE8-
+  /* End of Fix Event for IE8- */
   
   function mkTextPixelArray(cssfontfamily) {
     // draw the alphabet on canvas using cssfontfamily
@@ -203,7 +211,7 @@
         return fonts[i].replace(/^\s*/, "").replace(/\s*$/, "");
       }
     }
-    return "default";
+    return "(default font)";
   }
   
   function firstFont(cssfontfamily) {
@@ -211,15 +219,18 @@
   }
 
   function tip(string, x, y) {
+    // Update tooltip display
     TIP.querySelector('.' + getClassName('tipinfo')).innerHTML = string;
     TIP.style.display = 'inline-block';
   }
 
   function hideTip() {
+    // Hide tooltip
     TIP.style.display = 'none';
   }
   
   function getCSSProperty(elem, prop) {
+    // Shortcut for getting CSS property (calculated)
     var val;
     if (window.getComputedStyle) {
       val = window.getComputedStyle(elem, null).getPropertyValue(prop);
@@ -231,6 +242,7 @@
   }
   
   function getFontInUse(elem) {
+    // Get the font that is in use.
     var cssfontfamily = getCSSProperty(elem, 'font-family');
     if (CANVAS_SUPPORT) {
       return fontInUse(cssfontfamily);
@@ -249,6 +261,7 @@
   // 
   
   function update(e) {
+    // Update when mouse moves
     var cn = getCSSProperty(this, 'class') || '', remover, x, y;
     // hidePromptOnTip();
     // if (PROMPT_TO) {
@@ -278,6 +291,7 @@
   }
 
   function onAllVisibleElementsDo(func) {
+    // Shortcut on all visible elements
     var elements = document.querySelectorAll('body *'), e;
     for (e = 0; e < elements.length; e += 1) {
       if (elements[e].nodeType && 1 === elements[e].nodeType &&
@@ -287,6 +301,7 @@
     }
   }
   
+  /* Panels */
   function getPanelFontFamily(elem) {
     var ff, fiu, fiuFound, font, fHTML;
     
@@ -309,7 +324,7 @@
     
     fHTML = ff.join(", ") + ";";
     if (!fiuFound) {
-      fHTML += " (<span class='" + getClassName("fiu") + "'>" + fiu + "</span>)";
+      fHTML += " <span class='" + getClassName("fiu") + "'>" + fiu + "</span>";
     }
     
     return [createElem('dt', 'family', "Font Family"), createElem('dd', '', fHTML)];
@@ -338,13 +353,13 @@
   }
   
   function getPanelExternal(elem) {
-    var wtfform, wtflink, tools = [];
+    var wtfform, wtflink, tools = [], disclaimer;
     
     // Use WhatTheFont service for IMG
     if (elem.tagName === 'IMG' && elem.src) {
       // Build a form for WhatTheFont services
       wtfform = document.createElement("form");
-      wtfform.setAttribute("action", "http://new.myfonts.com/WhatTheFont/upload.php");
+      wtfform.setAttribute("action", "http://new.myfonts.com/WhatTheFont/upload.php?utm_source=whatfont&utm_medium=whatfont&utm_campaign=whatfont");
       wtfform.setAttribute("method", "POST");
       wtfform.setAttribute("target", "_blank");
       wtfform.innerHTML = '<input type="hidden" name="MAX_FILE_SIZE" value="2000000"><input size="37" name="upload_url" type="text" value="' + elem.src + '">';
@@ -356,8 +371,10 @@
         wtfform.submit();
       });
       
+      // disclaimer = createElem('a', '', '?');
+      // disclaimer.setAttribute('href', EXTERNAL_DISCLAIMER);
       tools = tools.concat([
-        createElem('dt', 'wtf', 'External Services'),
+        createElem('dt', 'wtf', ['External Services']),
         createElem('dd', 'wtf', [wtfform, wtflink])
       ]);
     }
