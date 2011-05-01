@@ -1,515 +1,428 @@
 (function (window) {
-  var VER         = "1.3.2",      // Current version
-  document      = window.document,
-  body          = document.querySelector('body'),
-  // Settings for font detector
-  ALPHABET      = 'abcdefghijklmnopqrstuvwxyz',  // alphabet to draw on canvas
-  WIDTH         = 600,          // canvas width in px
-  HEIGHT        = 50,           // canvas height in px
-  SIZE          = 40,           // font size to draw in px
-  FILLSTYLE     = 'rgb(0,0,0)', // canvas fill style
-  TEXTBASELINE  = 'top',        // canvas text baseline
-  // DOM elements
-  TIP,      // Tooltip
-  EXIT,     // Exit control
-  CONTROL,  // Controller wrapper
-  // Settings
-  STYLESHEET_URL = "http://chengyinliu.com/wf.css?ver=" + VER,
-  EXTERNAL_DISCLAIMER = "http://chengyinliu.com/whatfont.html#whatfont-external",
-  STYLELINK,                                // <link> for CSS
-  STYLE_PRE      = 'com_chengyinliu_wf_',   // Avoid conflicts
-  PANELS         = [],                      // Panels inserted
-  PROMPT_TO,
-  // For IE8-
-  CANVAS_SUPPORT = !!(document.createElement("canvas").getContext);
+  var $, css, fd, tip, panel, toolbar, ctrl, body, VER;
   
-  function getClassName(name) {
-    // Generate class name with prefix
-    var className = "", n;
-    
-    // Multiple names
-    name = typeof name === 'string' ? [name] : name;
-    
-    for (n = 0; n < name.length; n += 1) {
-      className += STYLE_PRE + name[n] + ' ';
-    }
-    
-    return className;
-  }
+  VER = "1.4b";
   
-  function createElem(tag, className, content, attr) {
-    // Shortcut for generating DOM element
-    var e = document.createElement(tag), c;
-    className = className || [];
-    content = content || '';
+  /* css */  
+  css = {
+    STYLE_PRE: 'com_chengyinliu_wf_',
+    CSS_URL: "http://chengyinliu.com/wf.css?ver=" + VER,
+    LINK: null,
     
-    if (typeof className === 'string') {
-      className = [className];
-    }
-    
-    className.push('basic');
-    
-    if (className !== undefined) {
-      e.setAttribute('class', getClassName(className));
-    }
-    
-    if (typeof content === 'string') {
-      e.innerHTML = content;
-    } else if (content.constructor === Array) {
-      for (c = 0; c < content.length; c += 1) {
-        if (typeof content[c] === 'string') {
-          e.appendChild(document.createTextNode(content[c]));
-        } else {
-          content[c] ? e.appendChild(content[c]) : null;
-        }
-      }
-    } else {
-      e.appendChild(content);
-    }
-    
-    if (typeof attr === 'object') {
-      for (c in attr) {
-        if (attr.hasOwnProperty(c)) {
-          e.setAttribute(c, attr[c]);
-        }
-      }
-    }
-    
-    return e;
-  }
+    init: function () {
+      //Insert the stylesheet
+      css.LINK = $("<link>").attr({
+        'rel' : 'stylesheet',
+        'href': css.CSS_URL
+      }).appendTo("head");
+    },
   
-  function setEventPosOffset(elem, e, offsetX, offsetY) {
-    // Shortcut for put element around the event
-    var x, y;
-    x = offsetX + e.pageX;
-    y = offsetY + e.pageY;
-    
-    elem.style.left = x + 'px';
-    elem.style.top = y + 'px';
-  }
+    restore: function () {
+      //Remove stylesheet
+      $(css.LINK).remove();
+    },
   
-  /* Fix Event for IE8- */
-  // written by Dean Edwards, 2005
-  // with input from Tino Zijdel, Matthias Miller, Diego Perini
-
-  // http://dean.edwards.name/weblog/2005/10/add-event/
-
-  function addEvent(element, type, handler) {
-    if (element.addEventListener) {
-      element.addEventListener(type, handler, false);
-    } else {
-      // assign each event handler a unique ID
-      if (!handler.$$guid) handler.$$guid = addEvent.guid++;
-      // create a hash table of event types for the element
-      if (!element.events) element.events = {};
-      // create a hash table of event handlers for each element/event pair
-      var handlers = element.events[type];
-      if (!handlers) {
-        handlers = element.events[type] = {};
-        // store the existing event handler (if there is one)
-        if (element["on" + type]) {
-          handlers[0] = element["on" + type];
-        }
-      }
-      // store the event handler in the hash table
-      handlers[handler.$$guid] = handler;
-      // assign a global event handler to do all the work
-      element["on" + type] = handleEvent;
+    getClassName: function (name) {
+      // Generate class name with prefix
+      // Multiple names
+      name = (typeof name === 'string') ? [name] : name;
+      return css.STYLE_PRE + name.join(" " + css.STYLE_PRE);
     }
   };
-  // a counter used to create unique IDs
-  addEvent.guid = 1;
-
-  function removeEvent(element, type, handler) {
-    if (element.removeEventListener) {
-      element.removeEventListener(type, handler, false);
-    } else {
-      // delete the event handler from the hash table
-      if (element.events && element.events[type]) {
-        delete element.events[type][handler.$$guid];
-      }
-    }
-  };
-
-  function handleEvent(event) {
-    var returnValue = true;
-    // grab the event object (IE uses a global event object)
-    event = event || fixEvent(((this.ownerDocument || this.document || this).parentWindow || window).event);
-    // get a reference to the hash table of event handlers
-    var handlers = this.events[event.type];
-    // execute each event handler
-    for (var i in handlers) {
-      this.$$handleEvent = handlers[i];
-      if (this.$$handleEvent(event) === false) {
-        returnValue = false;
-      }
-    }
-    return returnValue;
-  };
-
-  function fixEvent(event) {
-    var e = document.documentElement;
-    
-    // add W3C standard event methods
-    event.preventDefault = fixEvent.preventDefault;
-    event.stopPropagation = fixEvent.stopPropagation;
-    
-    // add pageX/page Y
-
-    event.pageX = event.clientX + (e.scrollLeft || body.scrollLeft);
-    event.pageY = event.clientY + (e.scrollTop || body.scrollTop);
-    
-    return event;
-  };
-  fixEvent.preventDefault = function() {
-    this.returnValue = false;
-  };
-  fixEvent.stopPropagation = function() {
-    this.cancelBubble = true;
-  };
-  /* End of Fix Event for IE8- */
   
-  function mkTextPixelArray(cssfontfamily) {
-    // draw the alphabet on canvas using cssfontfamily
-    var canvas       = document.createElement('canvas'),
-      ctx            = canvas.getContext('2d');
+  /* fontDetector */
+  fd = {
+    ALPHABET: 'abcdefghijklmnopqrstuvwxyz', // alphabet to draw on canvas
+    FILLSTYLE: 'rgb(0,0,0)',                // canvas fill style 
+    HEIGHT: 50,                             // canvas height in px    
+    SIZE: 40,                               // font size to draw in px
+    TEXTBASELINE: 'top',                    // canvas text baseline
+    WIDTH: 600,                             // canvas width in px 
+    HISTORY: {},                            // cache
+    
+    init: function () {
+      fd.CANVAS_SUPPORT = !!($("<canvas>")[0].getContext);
+                                              // detect canvas support for IE8-
+    },
+    
+    restore: function () {
       
-    canvas.width     = WIDTH;
-    canvas.height    = HEIGHT;
+    },
 
-    ctx.fillStyle    = FILLSTYLE;
-    ctx.textBaseline = TEXTBASELINE;
-    ctx.font         = SIZE + 'px ' + cssfontfamily;
-    ctx.fillText(ALPHABET, 0, 0);
-    return ctx.getImageData(0, 0, WIDTH, HEIGHT).data;
-  }
+    mkTextPixelArray: function (cssfontfamily) {
+      // draw the alphabet on canvas using cssfontfamily
+      var canvas       = $('<canvas>')[0],
+        ctx            = canvas.getContext('2d');
+    
+      canvas.width     = fd.WIDTH;
+      canvas.height    = fd.HEIGHT;
 
-  function sameArray(a1, a2) {
-    // compare if two pixel arrays are identical
-    var len = WIDTH * HEIGHT * 4, i; // each pixel is 4 bytes (RGBA)
-    for (i = 0; i < len; i += 1) {
-      if (a1[i] !== a2[i]) {
-        return false;
+      ctx.fillStyle    = fd.FILLSTYLE;
+      ctx.textBaseline = fd.TEXTBASELINE;
+      ctx.font         = fd.SIZE + 'px ' + cssfontfamily;
+      ctx.fillText(fd.ALPHABET, 0, 0);
+      return ctx.getImageData(0, 0, fd.WIDTH, fd.HEIGHT).data;
+    },
+  
+    sameArray: function (a1, a2) {
+      // compare if two pixel arrays are identical
+      var len = fd.WIDTH * fd.HEIGHT * 4, i; // each pixel is 4 bytes (RGBA)
+      for (i = 0; i < len; i += 1) {
+        if (a1[i] !== a2[i]) {
+          return false;
+        }
       }
-    }
     
-    return true;
-  }
+      return true;
+    },
+  
+    fontInUse: function (cssfontfamily) {
+      // try each font in cssfontfamily list to see which one is used
+      var fonts  = cssfontfamily.split(','),
+        a0       = fd.mkTextPixelArray(cssfontfamily),
+        i, 
+        a1;
 
-  function fontInUse(cssfontfamily) {
-    // try each font in cssfontfamily list to see which one is used
-    var fonts  = cssfontfamily.split(','),
-      a0       = mkTextPixelArray(cssfontfamily),
-      i, 
-      a1;
-
-    for (i = 0; i < fonts.length; i += 1) {
-      a1 = mkTextPixelArray(fonts[i]);
-      if (sameArray(a0, a1)
-          && sameArray(mkTextPixelArray(fonts[i] + ',serif'), mkTextPixelArray(fonts[i] + ',sans-serif'))) {
-        // rendered fonts match, and font really is installed
-        return fonts[i].replace(/^\s*/, "").replace(/\s*$/, "");
+      for (i = 0; i < fonts.length; i += 1) {
+        a1 = fd.mkTextPixelArray(fonts[i]);
+        if (fd.sameArray(a0, a1)
+            && fd.sameArray(fd.mkTextPixelArray(fonts[i] + ',serif'), fd.mkTextPixelArray(fonts[i] + ',sans-serif'))) {
+          // rendered fonts match, and font really is installed
+          return $.trim(fonts[i]);
+        }
       }
-    }
-    return "(default font)";
-  }
+    
+      return "(default font)";
+    },
   
-  function firstFont(cssfontfamily) {
-    return cssfontfamily.split(',')[0].replace(/^\s*/, "").replace(/\s*$/, "");
-  }
+    firstFont: function (cssfontfamily) {
+      return $.trim(cssfontfamily.split(',')[0]);
+    },
+  
+    detect: function (elem) {
+      var cssfontfamily = $(elem).css('font-family');
+      return fd.HISTORY[cssfontfamily] = 
+        fd.HISTORY[cssfontfamily] ||
+        fd.CANVAS_SUPPORT ? fd.fontInUse(cssfontfamily) : fd.firstFont(cssfontfamily);
+    }
+  };
+  
+  /* tip */
+  tip = { 
+    TIP: null,
+  
+    init: function () {
+      //Insert Tip
+      tip.TIP = $.createElem('div', ["tip", "elem"], '');
+      $(tip.TIP).appendTo("body");
+      
+      //Listen to the mouse move
+      $("body *:visible").mousemove(tip.update);
+      // $("body").mousemove(tip.update);
+      $("body").mouseout(tip.hide);
+    },
+  
+    restore: function () {
+      $(tip.TIP).remove();
+      $("body :visible").unbind("mousemove", tip.update);
+      $("body").unbind("mousemove", tip.update);
+      $("body").unbind("mouseout", tip.hide);
+    },
 
-  function tip(string, x, y) {
-    // Update tooltip display
-    TIP.querySelector('.' + getClassName('tipinfo')).innerHTML = string;
-    TIP.style.display = 'inline-block';
-  }
-
-  function hideTip() {
-    // Hide tooltip
-    TIP.style.display = 'none';
-  }
+    hide: function () {
+      $(tip.TIP).hide();
+    },
   
-  function getCSSProperty(elem, prop) {
-    // Shortcut for getting CSS property (calculated)
-    var val;
-    if (window.getComputedStyle) {
-      val = window.getComputedStyle(elem, null).getPropertyValue(prop);
-    } else if (elem.currentStyle) {
-      val = elem.currentStyle[prop];
-    }
-    
-    return (val || '');
-  }
+    updateText: function (str) {
+      $(tip.TIP).text(str).css('display', 'inline-block');
+    },
   
-  function getFontInUse(elem) {
-    // Get the font that is in use.
-    var cssfontfamily = getCSSProperty(elem, 'font-family');
-    if (CANVAS_SUPPORT) {
-      return fontInUse(cssfontfamily);
-    } else {
-      return firstFont(cssfontfamily);
-    }
-  }
+    updatePos: function (pos_e) {
+      $(tip.TIP).css({top: pos_e.pageY + 12, left: pos_e.pageX + 12});
+    },
   
-  // function showPromptOnTip() {
-  //   TIP.querySelector('.' + getClassName('tipprompt')).style.display = 'block';
-  // }
-  // 
-  // function hidePromptOnTip() {
-  //   TIP.querySelector('.' + getClassName('tipprompt')).style.display = 'none';
-  // }
-  // 
-  
-  function update(e) {
-    // Update when mouse moves
-    var cn = getCSSProperty(this, 'class') || '', remover, x, y;
-    // hidePromptOnTip();
-    // if (PROMPT_TO) {
-    //   window.clearTimeout(PROMPT_TO);
-    // }
-    // PROMPT_TO = window.setTimeout(showPromptOnTip, 1000);
-    // 
-    // this.setAttribute('class', cn + ' ' + getClassName('highlighted'));
+    updateTextPos: function (text, pos_e) {
+      tip.updateText(text);
+      tip.updatePos(pos_e);
+    },
     
-
-    // remover = this.addEventListener('mouseout', function () {
-      //this.setAttribute('class', cn);
-      //this.setAttribute('class', getCSSProperty(this, 'class').replace(getClassName('highlighted'), ''));
-    //   this.removeEventListener('mouseout', remover, false);
-    // }, false);
+    update: function (e) {
+      var ff = $(this).css("font-family"), x, y;
     
-    if (this.tagName === 'IMG') {
-      tip(getFontInUse(this) + " (May be incorrect on images)");
-    } else if (this.tagName === 'EMBED'){
-      tip(getFontInUse(this) + " (May be incorrect on Flash)");
-    } else {
-      tip(getFontInUse(this));    // Update the content of the tip
-    }
-    
-    setEventPosOffset(TIP, e, 12, 12);    // Update postition of the tip
-    e.stopPropagation();
-  }
-
-  function onAllVisibleElementsDo(func) {
-    // Shortcut on all visible elements
-    var elements = document.querySelectorAll('body *'), e;
-    for (e = 0; e < elements.length; e += 1) {
-      if (elements[e].nodeType && 1 === elements[e].nodeType &&
-          'none' !== elements[e].style.display) {  // visible elements only
-        func(elements[e]);
-      }
-    }
-  }
-  
-  /* Panels */
-  function getPanelFontFamily(elem) {
-    var ff, fiu, fiuFound, font, fHTML;
-    
-    ff = getCSSProperty(elem, 'font-family').split(',');
-    fiu = getFontInUse(elem);
-    fiuFound = false;
-    for (font = 0; font < ff.length; font += 1) {
-      ff[font] = ff[font].replace(/^\s*/, "").replace(/\s*$/, "").replace(/;$/, "");
-    }
-    
-    for (font = 0; font < ff.length; font += 1) {
-      if (ff[font] !== fiu) {
-        ff[font] = "<span class='" + getClassName("fniu") + "'>" + ff[font] + "</span>";
+      if (this.tagName === 'IMG') {
+        tip.updateTextPos(fd.detect(this) + " (May be incorrect on images)", e);
+      } else if (this.tagName === 'EMBED') {
+        tip.updateTextPos(fd.detect(this) + " (May be incorrect on Flash)", e);
       } else {
-        ff[font] = "<span class='" + getClassName("fiu") + "'>" + ff[font] + "</span>";
-        fiuFound = true;
-        break;
+        tip.updateTextPos(fd.detect(this), e);    // Update the content of the tip
       }
+    
+      e.stopPropagation();
     }
-    
-    fHTML = ff.join(", ") + ";";
-    if (!fiuFound) {
-      fHTML += " <span class='" + getClassName("fiu") + "'>" + fiu + "</span>";
-    }
-    
-    return [createElem('dt', 'family', "Font Family"), createElem('dd', '', fHTML)];
-  }
+  };
   
-  function getPanelFontStyleWeight(elem) {
-    var style = getCSSProperty(elem, 'font-style'),
-      weight = getCSSProperty(elem, 'font-weight'),
-      sdl = createElem('dl', 'style', 
-        [createElem('dt', 'style', 'Style'), createElem('dd', 'style', style)]),
-      wdl = createElem('dl', 'weight', 
-        [createElem('dt', 'weight', 'Weight'), createElem('dd', 'weight', weight)]);
-        
-    return [createElem('dl', 'style_weight', [sdl, wdl])];
-  }
-  
-  function getPanelSizeLineHeight(elem) {
-    var size = getCSSProperty(elem, 'font-size'),
-      lh = getCSSProperty(elem, 'line-height'),
-      sdl = createElem('dl', 'size', 
-        [createElem('dt', 'size', 'Font Size'), createElem('dd', 'size', size)]),
-      lhdl = createElem('dl', 'lh', 
-        [createElem('dt', 'lh', 'Line Height'), createElem('dd', 'lh', lh)]);
-        
-    return [createElem('dl', 'size_lh', [sdl, lhdl])];
-  }
-  
-  function getPanelExternal(elem) {
-    var wtfform, wtflink, tools = [], disclaimer;
+  /* Panel */
+  panel = { 
+    PANELS: [],
     
-    // Use WhatTheFont service for IMG
-    if (elem.tagName === 'IMG' && elem.src) {
-      // Build a form for WhatTheFont services
-      wtfform = document.createElement("form");
-      wtfform.setAttribute("action", "http://new.myfonts.com/WhatTheFont/upload.php?utm_source=whatfont&utm_medium=whatfont&utm_campaign=whatfont");
-      wtfform.setAttribute("method", "POST");
-      wtfform.setAttribute("target", "_blank");
-      wtfform.innerHTML = '<input type="hidden" name="MAX_FILE_SIZE" value="2000000"><input size="37" name="upload_url" type="text" value="' + elem.src + '">';
-      wtfform.style.display = "none";
+    init: function () {
+      $("body :visible").click(panel.pin);
+    },
+    
+    restore: function () {
+      $("body :visible").unbind("click", panel.pin);
       
-      wtflink = createElem('a', 'wtf_link', 'MyFonts WhatTheFont for images &raquo;');
-      addEvent(wtflink, 'click', function (e) {
-        // Submit the form
-        wtfform.submit();
+      $.each(panel.PANELS, function (i, p) {
+        $(p).remove();
       });
+    },
+    
+    fontFamily: function (elem) {
+      var ff, fiu, fiuFound, font, fHTML;
+    
+      ff = $(elem).css('font-family');
+      fiu = fd.detect(elem);
+      ff = ff.split(",")
+      fiuFound = false;
       
-      // disclaimer = createElem('a', '', '?');
-      // disclaimer.setAttribute('href', EXTERNAL_DISCLAIMER);
-      tools = tools.concat([
-        createElem('dt', 'wtf', ['External Services']),
-        createElem('dd', 'wtf', [wtfform, wtflink])
-      ]);
-    }
+      ff = $.map(ff, function (f, i) {
+        return $.trim(f).replace(/;$/, "");
+      });
     
-    return tools.length ? createElem('dl', 'external', tools) : null;
-  }
-  
-  
-  function getPanelDetailList(elem) {
-    var ff = getPanelFontFamily(elem),
-      fsw = getPanelFontStyleWeight(elem),
-      fslh = getPanelSizeLineHeight(elem),
-      ext = getPanelExternal(elem),
-      dl = createElem('dl', '', ff.concat(fsw).concat(fslh).concat(ext));
-      
-    return dl;
-  }
-  
-  function getPanelTitle(elem) {
-    var text = createElem('div', '', ''),
-      close = createElem('div', 'close_button', '&times;'),
-      title = createElem('div', 'panel_title', [text, close]);
-    
-    close.setAttribute('title', 'Close');
-    addEvent(close, 'click', function (e) {
-      var panel = title.parentNode;
-      // delete panel.on_element.wf_panel;
-      body.removeChild(panel);
-      e.stopPropagation();
-    });
-      
-    return title;
-  }
-  
-  function getPanel(elem) {
-    var panelTitle = getPanelTitle(elem),
-      panelDetailList = getPanelDetailList(elem),
-      panel = createElem('div', ["elem", "panel"], [panelTitle, panelDetailList]);
-    
-    addEvent(panel, 'click', function (e) {
-      this.querySelector('dl').style['-webkit-animation'] = "none";
-      this.querySelector('.com_chengyinliu_wf_panel_title').style['-webkit-animation'] = "none";
-      body.removeChild(this);
-      body.appendChild(this);
-
-      e.stopPropagation();
-    });
-    
-    return panel;
-  }
-  
-  function pin(e) {
-    var panel, height, cn = getCSSProperty(this, 'class'), x, y;
-    
-    hideTip();
-    
-    panel = getPanel(this);
-    
-    setEventPosOffset(panel, e, -13, 12);
-    
-    body.appendChild(panel);
-    
-    // this.setAttribute('class', getClassName('highlighted') + cn);
-  
-    PANELS.push(panel);
-
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  
-  function restore(e) {
-    var p;
-    
-    onAllVisibleElementsDo(function (elem) {
-      removeEvent(elem, 'mousemove', update);
-      removeEvent(elem, 'click', pin);
-    });
-    
-    body.removeChild(TIP);
-    body.removeChild(CONTROL);
-    STYLELINK.parentNode.removeChild(STYLELINK);
-    
-    for (p = 0; p < PANELS.length; p += 1) {
-      if (PANELS[p].parentNode === body) {
-        body.removeChild(PANELS[p]);
+      for (font = 0; font < ff.length; font += 1) {
+        if (ff[font] !== fiu) {
+          ff[font] = "<span class='" + css.getClassName("fniu") + "'>" + ff[font] + "</span>";
+        } else {
+          ff[font] = "<span class='" + css.getClassName("fiu") + "'>" + ff[font] + "</span>";
+          fiuFound = true;
+          break;
+        }
       }
-      delete PANELS[p];
-    }
-  }
-  
-  function shortcut(e) {
-    var key = e.keyCode;
     
-    if (key === 27) {
-      restore();
+      fHTML = ff.join(", ") + ";";
+      if (!fiuFound) {
+        fHTML += " <span class='" + css.getClassName("fiu") + "'>" + fiu + "</span>";
+      }
+    
+      return [$.createElem('dt', 'family', "Font Family"), $.createElem('dd', '', fHTML)];
+    },
+  
+    fontStyleWeight: function (elem) {
+      var style = $(elem).css('font-style'),
+        weight = $(elem).css('font-weight'),
+        sdl = $.createElem('dl', 'style', 
+          [$.createElem('dt', 'style', 'Style'), $.createElem('dd', 'style', style)]),
+        wdl = $.createElem('dl', 'weight', 
+          [$.createElem('dt', 'weight', 'Weight'), $.createElem('dd', 'weight', weight)]);
+        
+      return [$.createElem('dl', 'style_weight', [sdl, wdl])];
+    },
+  
+    sizeLineHeight: function (elem) {
+      var size = $(elem).css('font-size'),
+        lh = $(elem).css('line-height'),
+        sdl = $.createElem('dl', 'size', 
+          [$.createElem('dt', 'size', 'Font Size'), $.createElem('dd', 'size', size)]),
+        lhdl = $.createElem('dl', 'lh', 
+          [$.createElem('dt', 'lh', 'Line Height'), $.createElem('dd', 'lh', lh)]);
+        
+      return [$.createElem('dl', 'size_lh', [sdl, lhdl])];
+    },
+
+    extern: function (elem) {
+      var wtfform, wtflink, tools = [], disclaimer;
+    
+      // Use WhatTheFont service for IMG
+      if (elem.tagName === 'IMG' && elem.src) {
+        // Build a form for WhatTheFont services
+        wtfform = $("<form>")
+          .attr({
+            action: "http://new.myfonts.com/WhatTheFont/upload.php?utm_source=whatfont&utm_medium=whatfont&utm_campaign=whatfont",
+            method: "POST",
+            target: "_blank"
+          })
+          .html('<input type="hidden" name="MAX_FILE_SIZE" value="2000000"><input size="37" name="upload_url" type="text" value="' + elem.src + '">')
+          .css("display", "none")[0];
+      
+        wtflink = $.createElem('a', 'wtf_link', 'MyFonts WhatTheFont for images &raquo;');
+
+        $(wtflink).click(function (e) {
+          wtfform.submit();
+        });      
+
+        tools = tools.concat([
+          $.createElem('dt', 'wtf', ['External Services']),
+          $.createElem('dd', 'wtf', [wtfform, wtflink])
+        ]);
+      }
+    
+      return tools.length ? $.createElem('dl', 'external', tools) : null;    
+    },
+  
+    detailList: function (elem) {
+      var ff = panel.fontFamily(elem),
+        fsw = panel.fontStyleWeight(elem),
+        fslh = panel.sizeLineHeight(elem),
+        ext = panel.extern(elem),
+        dl = $.createElem('dl', '', ff.concat(fsw).concat(fslh).concat(ext));
+      
+      return dl;
+    },
+  
+    title: function (elem) {
+      var text = $.createElem('div', '', ''),
+        close = $.createElem('div', 'close_button', '&times;'),
+        title = $.createElem('div', 'panel_title', [text, close]);
+    
+      $(close)
+        .attr("title", "Close")
+        .click(function (e) {
+          $(title).parent().remove();
+          e.stopPropagation();
+        });
+          
+      return title;
+    },
+  
+    get: function (elem) {
+      var panelTitle = panel.title(elem),
+        panelDetailList = panel.detailList(elem),
+        p = $.createElem('div', ["elem", "panel"], [panelTitle, panelDetailList]);
+    
+      $(p).click(function (e) {
+        $(this).find('dl').css('-webkit-animation', 'none');
+        $(this).find('.com_chengyinliu_wf_panel_title').css('-webkit-animation', 'none');
+        $(this).detach();
+        $(this).appendTo('body');
+        e.stopPropagation();
+      });
+    
+      return p;
+    },
+    
+    pin: function (e) {
+      var p, height, x, y;
+      tip.hide();
+      
+      p = panel.get(this);
+      //setEventPosOffset(panel, e, -13, 12);
+      
+      $(p).css({
+        'top': e.pageY + 12,
+        'left': e.pageX - 13
+      }).appendTo("body");
+
+      panel.PANELS.push(p);
+
       e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+  
+  /* Toolbar */
+  toolbar = {
+    TOOLBAR: null,
+    
+    init: function () {
+      var exit = $.createElem('div', "exit", "Exit WhatFont"),
+        help = $.createElem('div', "help", "<strong>Hover</strong> to identify<br /><strong>Click</strong> to pin a detail panel");
+        
+      toolbar.TOOLBAR = $("<div>")
+        .addClass(css.getClassName(["elem", "control"]))
+        .append(exit)
+        .append(help)
+        .appendTo('body');      
+      
+      $(exit).click(function () {
+        ctrl.restore();
+      });
+    },
+    
+    restore: function () {
+      $(toolbar.TOOLBAR).remove();
+    }
+  };
+  
+  /* Controller */
+  ctrl = {
+    shortcut: function (e) {
+      var key = e.keyCode || e.which;
+    
+      if (key === 27) {
+        ctrl.restore();
+        e.stopPropagation();
+      }
+    },
+    
+    restore: function (e) {
+      var p;
+    
+      $("body :visible").unbind('mousemove', ctrl.updateTip);
+      $("body :visible").unbind('click', ctrl.pinPanel);
+    
+      fd.restore();
+      toolbar.restore();
+      tip.restore();
+      panel.restore();
+      css.restore();
+      
+      $("body").unbind("keydown", ctrl.shortcut);
+    },
+  
+    init: function () {
+      $.createElem = function (tag, className, content, attr) {
+        // Shortcut for generating DOM element
+        var e = $("<" + tag + ">"), c;
+        className = className || [];
+        content = content || '';
+
+        className = (typeof className === 'string') ? [className] : className;
+        className.push('basic');
+        
+        e.addClass(css.getClassName(className));
+        
+        if (typeof content === 'string') {
+          e.html(content);
+        } else if (content.constructor === Array) {
+          $.map(content, function (n, i) {
+            return e.append(n);
+          });
+        } else {
+          e.append(content);
+        }
+        
+        e.attr(attr);
+
+        return e[0];
+      };
+      
+      css.init();
+      fd.init();
+      tip.init();
+      panel.init();
+      toolbar.init();
+      
+      $("body").keydown(ctrl.shortcut);
+    }
+  };
+  
+  function loadJQuery(callback) {
+    var s;
+    if (typeof jQuery === 'undefined') {
+      s = window.document.createElement('script');
+      s.src = 'https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js';      
+      s.onload = function () {
+        jQuery.noConflict();
+        $ = jQuery;
+        callback();
+      };
+      
+      window.document.getElementsByTagName('head')[0].appendChild(s);
+    } else {
+      $ = jQuery;
+      callback();
     }
   }
   
-  function activate() {
-    // add stylesheet
-    var exit, help;
-    
-    STYLELINK = document.createElement("link")
-    STYLELINK.setAttribute("rel", "stylesheet");
-    STYLELINK.setAttribute("href", STYLESHEET_URL);
-    document.querySelector("head").appendChild(STYLELINK);
-    
-    // TIP = createElem('div', ["elem", "tip"], [createElem('div', ['tipinfo']), createElem('div', ['tipprompt'], 'Click to see details')]);
-    TIP = createElem('div', ["tip"], [createElem('div', ["elem", 'tipinfo'])]);
-    exit = createElem('div', "exit", "Exit WhatFont");
-    help = createElem('div', "help", "<strong>Hover</strong> to identify<br /><strong>Click</strong> to pin a detail panel");
-    CONTROL = createElem('div', ["elem", "control"], [exit, help]);
-    
-    // detect font upon mouse movement on visible elements
-    // click to pin
-    onAllVisibleElementsDo(function (elem) { 
-      addEvent(elem, 'mousemove', update);
-      addEvent(elem, 'click', pin);
-    });
-    
-    // hide tip when mouse out <body> tag
-    addEvent(body, 'mouseout', hideTip);
-    
-    // add tip box to DOM
-    body.appendChild(TIP);
-    
-    // add controller
-    body.appendChild(CONTROL);
-
-    // clean up
-    addEvent(exit, 'mouseup', restore);
-    addEvent(body, 'keydown', shortcut);
-  }
-  
-  activate();
-
+  loadJQuery(ctrl.init);
 }(window));
