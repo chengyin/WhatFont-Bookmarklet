@@ -1,5 +1,5 @@
 (function (window) {
-  var $, css, fd, tip, panel, toolbar, ctrl, body, VER;
+  var $, css, fd, tip, panel, toolbar, ctrl, fs, VER;
   
   VER = "1.4b";
   
@@ -106,6 +106,74 @@
         fd.CANVAS_SUPPORT ? fd.fontInUse(cssfontfamily) : fd.firstFont(cssfontfamily);
     }
   };
+
+  /* Font services */
+  fs = {
+    CSS_NAME_TO_SLUG: {},
+    FONT_DATA: {},
+    SERVICES: {},
+    
+    init: function () {
+      fs.typekit();
+    },
+    
+    typekit: function () {
+      /* Code for typekit, based on 
+         https://github.com/typekit/typekit-api-examples/blob/master/bookmarklet/bookmarklet.js
+      */
+      
+      function findKitId(){
+        var kitId = null;
+        $('script').each(function(index){
+          var m = this.src.match(/use\.typekit\.com\/(.+)\.js/);
+          if (m) {
+            kitId = m[1];
+            return false
+          }
+        });
+        return kitId;
+      }
+      
+      var kitId = findKitId();
+      if(kitId){
+        $.getJSON("https://typekit.com/api/v1/json/kits/" + kitId + "/published?callback=?", function(data){
+          if(!data.errors) {
+            fs.SERVICES.typekit = data.kit;
+            $.each(data.kit.families, function(i, family) {
+              $.each(family.css_names, function (i, css) {
+                fs.CSS_NAME_TO_SLUG[css] = family.slug;
+              });
+              
+              fs.FONT_DATA[family.slug] = fs.FONT_DATA[family.slug] || 
+                { 
+                  name: family.name,
+                  services: {}
+                };
+                
+              fs.FONT_DATA[family.slug].services.Typekit = {
+                id: family.id,
+                url: 'http://typekit.com/fonts/' + family.slug
+              };
+            });
+          }
+        });
+      };
+    },
+    
+    google: function () {
+      $("link").each(function (i, l) {
+        var url = $(l).attr("href");
+        if (url.indexOf("fonts.googleapis.com/css?") >== 0) {
+          /\?family=(([a-zA-Z+]*)(\:[a-z0-9]+)?(|)?)+/
+        }
+      }); 
+    },
+    
+    getFontDataByCSSName: function (cssName) {
+      var slug = fs.CSS_NAME_TO_SLUG[cssName];
+      return (slug && fs.FONT_DATA[slug] ? fs.FONT_DATA[slug] : null);
+    }
+  };
   
   /* tip */
   tip = { 
@@ -182,13 +250,9 @@
     
       ff = $(elem).css('font-family');
       fiu = fd.detect(elem);
-      ff = ff.split(",")
+      ff = ff.replace(/;/, '').split(/,\s*/);
       fiuFound = false;
       
-      ff = $.map(ff, function (f, i) {
-        return $.trim(f).replace(/;$/, "");
-      });
-    
       for (font = 0; font < ff.length; font += 1) {
         if (ff[font] !== fiu) {
           ff[font] = "<span class='" + css.getClassName("fniu") + "'>" + ff[font] + "</span>";
@@ -203,10 +267,26 @@
       if (!fiuFound) {
         fHTML += " <span class='" + css.getClassName("fiu") + "'>" + fiu + "</span>";
       }
+      
+      fHTML = "<div class=" + css.getClassName('fontfamily_list') + ">" + fHTML + "</div>"
     
       return [$.createElem('dt', 'family', "Font Family"), $.createElem('dd', '', fHTML)];
     },
-  
+    
+    fontService: function (elem) {
+      var fiu = fd.detect(elem), fontData = fs.getFontDataByCSSName(fiu), fontServices = '';
+      if (fontData) {
+        $.each(fontData.services, function (name, srv) {
+          fontServices += '<div><span style="font-family:' + fiu + '">' + fontData.name + '</span> available at <a href="' + srv.url + '" target="_blank">' + name + "</a> &raquo;</div>";
+        });
+        
+        return [$.createElem('dt', 'font_service', "Font Services"),
+          $.createElem('dd', 'font_service', fontServices)];
+      } else {
+        return null;
+      }
+    },
+    
     fontStyleWeight: function (elem) {
       var style = $(elem).css('font-style'),
         weight = $(elem).css('font-weight'),
@@ -261,10 +341,11 @@
   
     detailList: function (elem) {
       var ff = panel.fontFamily(elem),
+        fsrv = panel.fontService(elem),
         fsw = panel.fontStyleWeight(elem),
         fslh = panel.sizeLineHeight(elem),
         ext = panel.extern(elem),
-        dl = $.createElem('dl', '', ff.concat(fsw).concat(fslh).concat(ext));
+        dl = $.createElem('dl', '', ff.concat(fsrv).concat(fsw).concat(fslh).concat(ext));
       
       return dl;
     },
@@ -401,6 +482,7 @@
       tip.init();
       panel.init();
       toolbar.init();
+      fs.init();
       
       $("body").keydown(ctrl.shortcut);
     }
