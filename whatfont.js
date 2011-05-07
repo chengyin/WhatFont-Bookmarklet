@@ -49,7 +49,7 @@
       
     },
 
-    mkTextPixelArray: function (cssfontfamily) {
+    mkTextPixelArray: function (cssfont) {
       // draw the alphabet on canvas using cssfontfamily
       var canvas       = $('<canvas>')[0],
         ctx            = canvas.getContext('2d');
@@ -59,7 +59,7 @@
 
       ctx.fillStyle    = fd.FILLSTYLE;
       ctx.textBaseline = fd.TEXTBASELINE;
-      ctx.font         = fd.SIZE + 'px ' + cssfontfamily;
+      ctx.font         = cssfont.style + ' ' + cssfont.variant + ' ' + cssfont.weight + ' ' + fd.SIZE + 'px ' + cssfont.family;
       ctx.fillText(fd.ALPHABET, 0, 0);
       return ctx.getImageData(0, 0, fd.WIDTH, fd.HEIGHT).data;
     },
@@ -76,17 +76,26 @@
       return true;
     },
   
-    fontInUse: function (cssfontfamily) {
+    fontInUse: function (cssfont) {
       // try each font in cssfontfamily list to see which one is used
-      var fonts  = cssfontfamily.split(','),
-        a0       = fd.mkTextPixelArray(cssfontfamily),
-        i, 
-        a1;
+      var fonts  = cssfont.family.split(','),
+          a0     = fd.mkTextPixelArray(cssfont.family);
 
-      for (i = 0; i < fonts.length; i += 1) {
-        a1 = fd.mkTextPixelArray(fonts[i]);
+      for (var i = 0, len = fonts.length; i < len; i += 1) {
+        var a1 = fd.mkTextPixelArray(fonts[i]);
         if (fd.sameArray(a0, a1)
-            && fd.sameArray(fd.mkTextPixelArray(fonts[i] + ',serif'), fd.mkTextPixelArray(fonts[i] + ',sans-serif'))) {
+            && fd.sameArray(fd.mkTextPixelArray({
+                                style   : cssfont.style, 
+                                variant : cssfont.variant, 
+                                weight  : cssfont.weight, 
+                                size    : cssfont.size,
+                                family  : fonts[i] + ',serif'}),
+                            fd.mkTextPixelArray({
+                                style   : cssfont.style,
+                                variant : cssfont.variant,
+                                weight  : cssfont.weight,
+                                size    : cssfont.size,
+                                family  : fonts[i] + ',sans-serif'}))) {
           // rendered fonts match, and font really is installed
           return $.trim(fonts[i]);
         }
@@ -96,14 +105,22 @@
     },
   
     firstFont: function (cssfontfamily) {
-      return $.trim(cssfontfamily.split(',')[0]);
+      var rs = $.trim(cssfontfamily.split(',')[0]);
+      return rs;
     },
   
     detect: function (elem) {
-      var cssfontfamily = $(elem).css('font-family');
-      return fd.HISTORY[cssfontfamily] = 
-        fd.HISTORY[cssfontfamily] ||
-        fd.CANVAS_SUPPORT ? fd.fontInUse(cssfontfamily) : fd.firstFont(cssfontfamily);
+      var cssfont = {
+        family : $(elem).css('font-family'),
+        style  : $(elem).css('font-style'),
+        variant: $(elem).css('font-variant'),
+        weight : $(elem).css('font-weight'),
+        size   : $(elem).css('font-size')
+      };
+
+      return fd.HISTORY[cssfont.family] = 
+        fd.HISTORY[cssfont.family] ||
+        fd.CANVAS_SUPPORT ? fd.fontInUse(cssfont) : fd.firstFont(cssfont.family);
     }
   };
 
