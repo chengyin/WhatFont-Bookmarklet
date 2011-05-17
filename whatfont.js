@@ -1,7 +1,8 @@
-(function (window) {
-  var $, css, fd, tip, panel, toolbar, ctrl, fs, VER;
+function (window) {
+  var $, css, fd, tip, panel, toolbar, ctrl, fs, VER, SRC;
   
-  VER = "1.4b";
+  VER = "1.4";
+  SRC = "bookmarklet";
   
   /* css */  
   css = {
@@ -79,9 +80,10 @@
     fontInUse: function (cssfont) {
       // try each font in cssfontfamily list to see which one is used
       var fonts  = cssfont.family.split(','),
-          a0     = fd.mkTextPixelArray(cssfont.family);
+          a0     = fd.mkTextPixelArray(cssfont.family),
+          i = 0, len;
 
-      for (var i = 0, len = fonts.length; i < len; i += 1) {
+      for (len = fonts.length; i < len; i += 1) {
         var a1 = fd.mkTextPixelArray(fonts[i]);
         if (fd.sameArray(a0, a1)
             && fd.sameArray(fd.mkTextPixelArray({
@@ -118,9 +120,9 @@
         size   : $(elem).css('font-size')
       };
 
-      return fd.HISTORY[cssfont.family] = 
+      return (fd.HISTORY[cssfont.family] = 
         fd.HISTORY[cssfont.family] ||
-        fd.CANVAS_SUPPORT ? fd.fontInUse(cssfont) : fd.firstFont(cssfont.family);
+          fd.CANVAS_SUPPORT ? fd.fontInUse(cssfont) : fd.firstFont(cssfont.family));
     }
   };
 
@@ -132,6 +134,7 @@
     
     init: function () {
       fs.typekit();
+      fs.google();
     },
     
     typekit: function () {
@@ -139,26 +142,26 @@
          https://github.com/typekit/typekit-api-examples/blob/master/bookmarklet/bookmarklet.js
       */
       
-      function findKitId(){
+      function findKitId() {
         var kitId = null;
         $('script').each(function(index){
           var m = this.src.match(/use\.typekit\.com\/(.+)\.js/);
           if (m) {
             kitId = m[1];
-            return false
+            return false;
           }
         });
         return kitId;
       }
       
       var kitId = findKitId();
-      if(kitId){
-        $.getJSON("https://typekit.com/api/v1/json/kits/" + kitId + "/published?callback=?", function(data){
+      if (kitId) {
+        $.getJSON("https://typekit.com/api/v1/json/kits/" + kitId + "/published?callback=?", function (data) {
           if(!data.errors) {
             fs.SERVICES.typekit = data.kit;
             $.each(data.kit.families, function(i, family) {
               $.each(family.css_names, function (i, css) {
-                fs.CSS_NAME_TO_SLUG[css] = family.slug;
+                fs.CSS_NAME_TO_SLUG[css.toLowerCase()] = family.slug;
               });
               
               fs.FONT_DATA[family.slug] = fs.FONT_DATA[family.slug] || 
@@ -174,21 +177,37 @@
             });
           }
         });
-      };
+      }
     },
     
     google: function () {
       $("link").each(function (i, l) {
-        var url = $(l).attr("href");
-        if (url.indexOf("fonts.googleapis.com/css?") >== 0) {
-          /\?family=(([a-zA-Z+]*)(\:[a-z0-9]+)?(|)?)+/
+        var url = $(l).attr("href"), fstr;
+        if (url.indexOf("fonts.googleapis.com/css?") >= 0) {
+          fstr = url.match(/\?family=([^&]*)/)[1].split('|');
+          $.each(fstr, function (i, s) {
+            var s = s.split(":")[0],
+              fontName = s.replace(/\+/g, ' '),
+              slug = fontName.replace(/ /g, '-').toLowerCase();
+            fs.CSS_NAME_TO_SLUG[fontName] = slug;
+            fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
+              {
+                name: fontName,
+                services: {}
+              };
+              
+            fs.FONT_DATA[slug].services.Google = {
+              url: 'http://www.google.com/webfonts/family?family=' + s
+            }
+          });
         }
       }); 
     },
     
     getFontDataByCSSName: function (cssName) {
-      var slug = fs.CSS_NAME_TO_SLUG[cssName];
-      return (slug && fs.FONT_DATA[slug] ? fs.FONT_DATA[slug] : null);
+      var name = cssName.replace(/^"|'/, '').replace(/"|'$/, '');
+        slug = fs.CSS_NAME_TO_SLUG[name];
+      return ((slug && fs.FONT_DATA[slug]) ? fs.FONT_DATA[slug] : null);
     }
   };
   
@@ -285,20 +304,28 @@
         fHTML += " <span class='" + css.getClassName("fiu") + "'>" + fiu + "</span>";
       }
       
-      fHTML = "<div class=" + css.getClassName('fontfamily_list') + ">" + fHTML + "</div>"
+      fHTML = "<div class=" + css.getClassName('fontfamily_list') + ">" + fHTML + "</div>";
     
       return [$.createElem('dt', 'family', "Font Family"), $.createElem('dd', '', fHTML)];
     },
     
     fontService: function (elem) {
-      var fiu = fd.detect(elem), fontData = fs.getFontDataByCSSName(fiu), fontServices = '';
+      var fiu = fd.detect(elem), fontData = fs.getFontDataByCSSName(fiu), fontServices = $.createElem('dd', 'font_service'), fontName;
       if (fontData) {
         $.each(fontData.services, function (name, srv) {
-          fontServices += '<div><span style="font-family:' + fiu + '">' + fontData.name + '</span> available at <a href="' + srv.url + '" target="_blank">' + name + "</a> &raquo;</div>";
+          fontName = $("<span>").css({
+            'font-family': $(elem).css("font-family"),
+            'font-style': $(elem).css("font-style"),
+            'font-weight': $(elem).css("font-weight")
+          }).text(fontData.name);
+          
+          $("<div>")
+            .append(fontName)
+            .append($('<span>').html(' served by <a href="' + srv.url + '" target="_blank">' + name + "</a> &raquo;"))
+            .appendTo(fontServices);
         });
         
-        return [$.createElem('dt', 'font_service', "Font Services"),
-          $.createElem('dd', 'font_service', fontServices)];
+        return [$.createElem('dt', 'font_service', "Font Service"), fontServices];
       } else {
         return null;
       }
@@ -441,6 +468,23 @@
     }
   };
   
+  /* Tracker */
+  tracker = {
+    init: function () {
+      var _gaq = _gaq || [];
+    	_gaq.push(['wf._setAccount', 'UA-23020717-1']);
+
+    	(function() {
+    	  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    	  ga.src = 'https://ssl.google-analytics.com/ga.js';
+    	  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    	  s.onload = function () {
+    	    _gaq.push(['wf._trackEvent', SRC, 'loaded', VER]);
+    	  }
+    	})();
+    }
+  }
+  
   /* Controller */
   ctrl = {
     shortcut: function (e) {
@@ -465,6 +509,8 @@
       css.restore();
       
       $("body").unbind("keydown", ctrl.shortcut);
+      
+      __WHATFONT = false;
     },
   
     init: function () {
@@ -494,6 +540,7 @@
         return e[0];
       };
       
+      tracker.init();
       css.init();
       fd.init();
       tip.init();
@@ -523,5 +570,13 @@
     }
   }
   
-  loadJQuery(ctrl.init);
+  function init() {
+    var loaded = (typeof __WHATFONT !== 'undefined') && __WHATFONT;
+    if (!loaded) {
+      __WHATFONT = true;
+      loadJQuery(ctrl.init);
+    }
+  }
+  
+  init();
 }(window));

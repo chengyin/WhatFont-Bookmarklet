@@ -35,7 +35,8 @@
 .com_chengyinliu_wf_basic {
   background: none;
   border: 0;
-  font: 14px/1.2 "Helvetica Neue",sans-serif;
+  float: none;
+  font: 12px/1.2 "Helvetica Neue", sans-serif;
   height: auto;
   margin: 0;
   padding: 0;
@@ -115,7 +116,7 @@
   -webkit-box-shadow: inset 0 0 1px #999, 0 0 3px #111;
   -moz-box-shadow: inset 0 0 1px #999, 0 0 3px #111;
   min-width: 200px;
-  max-width: 300px;
+  max-width: 250px;
   padding: 0;
   position: absolute;
   text-shadow: 0 -1px 0 #333;
