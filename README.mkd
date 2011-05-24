@@ -1,6 +1,21 @@
 WhatFont
---------
+========
 
-A bookmarklet to detect exactly which font is used on any elements of web pages.
+A JS script to detect which font is currently been used on any elements of web pages.
 
+Available as bookmarklet and Chrome extension on http://chengyinliu.com/whatfont.html.
+
+How to Use
+----------
+
+The script requires jQuery (v1.5.2), if jQuery has already been loaded into the global scope, the script finds it automatically. Otherwise `setJQuery(jQ)` needs to be called to set up jQuery object.
+
+The script runs in a closure and interfaces can be get by calling `_whatFont()` function.
+
+Example
+-------
+	wf = _whatFont();	      // Create a WhatFont tool (but haven't load it into the page)
+	wf.setjQuery(jQuery);   // Set jQuery
+	wf.init();              // Load the tool
+	wf.restore();           // Exit the tool
 
