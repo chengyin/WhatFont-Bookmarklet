@@ -14,7 +14,7 @@ The script runs in a closure and interfaces can be get by calling `_whatFont()` 
 
 Example
 -------
-	wf = _whatFont();	      // Create a WhatFont tool (but haven't load it into the page)
+	wf = _whatFont();       // Create a WhatFont tool (w/o load it into the page)
 	wf.setjQuery(jQuery);   // Set jQuery
 	wf.init();              // Load the tool
 	wf.restore();           // Exit the tool
