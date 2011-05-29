@@ -1,7 +1,7 @@
 function _whatFont() {
   var $, css, fd, tip, panel, toolbar, ctrl, fs, VER, _wf;
   
-  VER = "1.4.2";
+  VER = "1.4.4";
   
   /* css */  
   css = {
@@ -11,10 +11,12 @@ function _whatFont() {
     
     init: function () {
       //Insert the stylesheet
-      css.LINK = $("<link>").attr({
-        'rel' : 'stylesheet',
-        'href': css.CSS_URL
-      }).appendTo("head");
+      if (css.CSS_URL) {
+        css.LINK = $("<link>").attr({
+          'rel' : 'stylesheet',
+          'href': css.CSS_URL
+        }).appendTo("head");
+      }
     },
   
     restore: function () {
@@ -575,4 +577,3 @@ function _whatFont() {
   
   return _wf;
 }
-
