@@ -5,7 +5,7 @@ function _whatFont() {
   
   /* css */  
   css = {
-    STYLE_PRE: 'com_chengyinliu_wf_',
+    STYLE_PRE: '__whatfont_',
     CSS_URL: "http://chengyinliu.com/wf.css?ver=" + VER,
     LINK: null,
     
