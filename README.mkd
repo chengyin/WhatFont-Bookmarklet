@@ -1,18 +1,18 @@
 WhatFont
 ========
 
-WhatFont is a JavaScript script to detect what font is currently been used on any elements of a web page.
+WhatFont is a JavaScript script to detect what font in the stack is being used on any elements of a web page.
 
-It is available as a bookmarklet and a Chrome extension on `http://chengyinliu.com/whatfont.html`.
+Here in the repo is the core component with out wrappers, the wrapped Chrome/Safari extensions are available at [`http://chengyinliu.com/whatfont.html`](http://chengyinliu.com/whatfont.html).
 
 How to Use
 ----------
 
-`whatfont_core.js` is the core script. It adds `_whatFont()` function into the global environment. WhatFont runs in a closure created `_whatFont()` function.
+`whatfont_core.js` is the core script. It adds `_whatFont()` into the global scope. WhatFont then runs in a closure created by the `_whatFont()` function.
 
-An objects consists of functions to communicate with WhatFont is returned by `whatFont()` function.
+An controller object is returned by `whatFont()` function. The controller will be used to set up the dependencies (jQuery and stylesheet) and initialize WhatFont.
 
-Such functions are:
+This controller has the following functions:
 
 * `setJQuery(jQ)`
 
@@ -20,7 +20,7 @@ Such functions are:
 
 * `setCSSURL(url)`
 
-	WhatFont injects its stylesheet file into the webpage. It has a default address setting. Calling this function will change the URL to load the stylesheet.
+	WhatFont injects its stylesheet file into the webpage. The script comes with a default URL setting, if you want to change the setting, calling this function.
 
 * `getVer()`
 
@@ -34,10 +34,11 @@ Such functions are:
 
 	Remove WhatFont from current `document`.
 
+
 Example
 -------                     
 	wf = _whatFont();		
-	wf.setjQuery(jQuery);	// Setup jQuery
-	wf.init();				// Load WhatFont
-	wf.restore();			// Exit WhatFont
+	wf.setjQuery(jQuery);		// Setup jQuery
+	wf.init();					// Load WhatFont
+	wf.restore();				// Remove WhatFont
 
