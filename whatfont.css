@@ -21,10 +21,56 @@
 }
 
 .__whatfont_basic {
-  background: none;
-  border: 0;
+  background: transparent;
+  border: 0px solid black;
+  border-bottom: 0px solid black;
+  border-left: 0px solid black;
+  border-right: 0px solid black;
+  border-top: 0px solid black;
+  border-radius: none;
+  -moz-border-radius: none;
+  -webkit-border-radius: none;
+  bottom: auto;
+  box-shadow: none;
+  -moz-border-radius: none;
+  -webkit-box-shadow: none;
+  clear: none;
+	color: inherit;
+	cursor: auto;
   float: none;
-  font: 14px/1.2 "Helvetica Neue", sans-serif;
+  font: inherit;
+  height: auto;
+  left: auto;
+  list-style: none;
+  margin: 0;
+  max-height: none;
+  max-width: none;
+  min-height: none;
+  min-width: none;
+  overflow: visible;
+  padding: 0;
+  position: static;
+  right: auto;
+  text-align: inherit;
+  text-decoration: none;
+  text-indent: 0;
+  text-shadow: inherit;
+  text-transform: none;
+  top: auto;
+  visibility: visible;
+  width: auto;
+  z-index: auto;
+  zoom: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+.__whatfont_basic {
+  background: none;
+  border-width: 0;
+	color: white;
+  float: none;
+  font: inherit;
   height: auto;
   margin: 0;
   padding: 0;
@@ -33,6 +79,7 @@
   width: auto;
   -webkit-font-smoothing: antialiased;
 }
+*/
 
 .__whatfont_basic * {
   color: inherit;
@@ -48,78 +95,101 @@
 }
 
 .__whatfont_elem {
-  background: rgba(0,0,0,.8);
-  border: 1px solid #000;
+  background: rgba(0, 0, 0, 0.9);
+  background: -moz-linear-gradient(top, rgba(30, 30, 30, 0.95), rgba(0, 0, 0, 0.9));
+  background: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(30, 30, 30, 0.95)), to(rgba(0, 0, 0, 0.9)));
+  border: 1px solid black;
   border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+  box-shadow: inset 0 0 1px #555, 0 0 5px #000;
+  -moz-box-shadow: inset 0 1px 0 #555, 0 0 5px #000;
+  -webkit-box-shadow: inset 0 1px 0 #555, 0 0 5px #000;
   color: #fff;
-  padding: .5em;
-  text-shadow: #000 1px 1px 2px;
+  font-family: "Helvetica Neue", sans-serif;  
+  font-size: 14px;
+  line-height: 1.286;  
+  padding: 0;
+  text-shadow: 0 -1px 0 #111;
   z-index: 2147483647;
+}
+
+.__whatfont_button {
+	background: #333;
+	background: -webkit-gradient(linear, 0 0, 0 100%, from(#555), color-stop(0.5, #333), color-stop(0.51, #333), to(#222));
+	background: -moz-linear-graident(top, #555 50%, #333 1%, #222);
+	border: 1px solid #000;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	box-shadow: inset 0 0 1px #aaa, 0 1px 0 #111;
+	-moz-box-shadow: inset 0 0 1px #aaa, 0 1px 0 #111;
+	-webkit-box-shadow: inset 0 0 1px #aaa, 0 1px 0 #111;
+	font-weight: 500;
+	padding: 3px 6px;
+	text-shadow: 0 1px 0 #000;
+	text-align: center;
 }
 
 .__whatfont_tip {
   display: none;
+  font-weight: 500;
+  line-height: 1;
+	opacity: 0.9;
+  padding: 4px 5px 6px 5px;
   position: absolute;
   z-index: 2147483647;
 }
 
 .__whatfont_control {
-  padding: 0;
+  box-shadow: inset 0 0 1px #555, 0 0 2px #000;
+  -moz-box-shadow: inset 0 1px 0 #555, 0 0 2px #000;
+  -webkit-box-shadow: inset 0 1px 0 #555, 0 0 2px #000;  
+	padding: 4px 8px;
   position: fixed;
   right: 10px;
   top: 10px;
 }
 
 .__whatfont_exit {
-  cursor: pointer;
-  padding: 0.5em;
-  text-align: right;
+	cursor: pointer;
+	font-weight: 500;
 }
 
 .__whatfont_help {
-  border-top: 1px solid #ccc;
-  color: #ddd;
+  color: #eee;
   font-size: 12px;
-  padding: 0.5em;
+}
+
+.__whatfont_help strong {
+  font-weight: 500;
 }
 
 .__whatfont_panel {
-  background: rgba(0, 0, 0, 0.7);
-  background: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(0, 0, 0, 0.7)), to(rgba(0, 0, 0, 0.9)));
-  background: -moz-linear-gradient(-90deg, rgba(0,0,0,0.7), rgba(0,0,0,0.9));
-  border: 1px solid black;
-  border-radius: 5px;
-  box-shadow: inset 0 0 1px #999, 0 0 3px #111;
-  -webkit-box-shadow: inset 0 0 1px #999, 0 0 3px #111;
-  -moz-box-shadow: inset 0 0 1px #999, 0 0 3px #111;
-  min-width: 200px;
-  max-width: 270px;
   padding: 0;
   position: absolute;
-  text-shadow: 0 -1px 0 #333;
+  width: 260px;
+	z-index: 214748364;
 }
 
 .__whatfont_panel_title {
-/*  background: #a6a6a6;
-  background: rgba(180, 180, 180, 0.9);
-  background: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(180, 180, 180, 0.9)), color-stop(0.5, rgba(180, 180, 180, 0.6)), color-stop(0.51, rgba(180, 180, 180, 0.5)), to(rgba(180, 180, 180, 0.3)));;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;*/  
-  font-size: 12px;
+	background: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(255, 255, 255, 0.3)), color-stop(0.6, rgba(255,255,255,0.1)), to(rgba(255,255,255,0)));
+	background: -moz-linear-gradient(top, rgba(255, 255, 255, 0.2), rgba(255,255,255,0));
+  color: #fff;
+  font-size: 1.1em;
   font-weight: bold;
-  overflow: visible;
-  padding: 0;
+	padding: 4px 16px 4px 10px;
   position: relative;
-  text-align: center;
-  -webkit-animation: fadeIn 0.1s 0 1 linear;
+	text-align: center;
+  text-transform: capitalize;
+} 
+
+.__whatfont_title_text {
+
 }
 
 .__whatfont_panel_title:before,
-.__whatfont_panel_title:after/*,
-.__whatfont_tip:before,
-.__whatfont_tip:after*/ {
+.__whatfont_panel_title:after {
   border-style: solid;
   content: '.';
   display: block;
@@ -129,24 +199,18 @@
   width: 0;
 }
 
-.__whatfont_panel_title:before,
-.__whatfont_tip:before {
+.__whatfont_panel_title:before {
   border-color: black transparent;
   border-width: 0 7px 7px 7px;
   left: 7px;
-  top: -7px;
+  top: -8px;
 }
 
-.__whatfont_panel_title:after,
-.__whatfont_tip:after {
-  border-color: #4b4b4b transparent;
-  border-width: 0 6px 6px 6px;
+.__whatfont_panel_title:after {
+  border-color: #666 transparent;
+  border-width: 0 6px 7px 6px;
   left: 8px;
-  top: -5px;
-}
-
-.__whatfont_tip:after {
-  border-color: #333 transparent;
+  top: -6px;
 }
 
 .__whatfont_close_button {
@@ -154,25 +218,27 @@
   bottom: 0;
   cursor: pointer;
   display: inline-block;
-  line-height: 18px;
+  line-height: 22px;
   margin: 0;
-  height: 18px;
+  height: 22px;
   padding: 1px;
   position: absolute;
-  right: 5px;
+  right: 7px;
   top: 0;
+  vertical-align: middle;
 }
 
 .__whatfont_close_button:hover {
   color: #aaa;
 }
 
-.__whatfont_panel>dl {
+.__whatfont_panel_content {
   overflow: hidden;
+	padding-bottom: 10px;
   -webkit-animation: slideDown 0.4s 0 1 ease-in-out;
 }
 
-.__whatfont_panel dl:after {
+.__whatfont_clearfix:after {
   content: ".";
   display: block;
   height: 0;
@@ -180,59 +246,170 @@
   visibility: hidden;
 }
 
-.__whatfont_panel dl,
-.__whatfont_panel dt,
-.__whatfont_panel dd {
-  margin: 0;
-  padding: 0;
-}
-
-.__whatfont_panel dt {
+.__whatfont_panel_content .__whatfont_panel_label,
+.__whatfont_panel_content div.__whatfont_panel_label,
+.__whatfont_panel_content dt.__whatfont_panel_label {
+  /* Property labels */
   color: #aaa;
   font-size: 12px;
   font-weight: bold;
-  padding: 6px 0 2px 4px;
+	line-height: 1.5;
+  text-shadow: 0 -1px 0 black;
+}
+
+.__whatfont_panel_content ul.__whatfont_panel_properties>li {
+	/* Property set */
+	border-bottom: 1px solid #000;
+  border-top: 1px solid #4a4a4a;
+	margin: 0 6px;
+  padding: 5px 4px;
+}
+
+.__whatfont_panel_content ul.__whatfont_panel_properties>li:first-child {
+	border-top: none;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.__whatfont_panel_content ul.__whatfont_panel_properties>li:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+.__whatfont_panel_content .__whatfont_panel_value,
+.__whatfont_panel_content div.__whatfont_panel_value,
+.__whatfont_panel_content dt.__whatfont_panel_value {
+  /* Property values */
+  font-weight: 500;
   text-shadow: 0 1px 0 black;
 }
 
-.__whatfont_panel>dl>dt,
-.__whatfont_panel>dl>dl {
-  margin: 0 6px;
-  border-top: 1px solid #666;
-}
 
-.__whatfont_panel>dl>dt:first-child {
-  border: none;
-}
-
-.__whatfont_panel dd {
-  font-size: 14px;
-  padding: 0 46px 6px 4px;
-}
-
-.__whatfont_panel>dl>dd,
-.__whatfont_panel>dl>dl {
-  margin: 0 6px;
-  border-bottom: 1px solid black;
-}
-
-.__whatfont_panel>dl :last-child {
-  border-bottom: none !important;
-}
-
-.__whatfont_fniu {
+.__whatfont_panel_content .__whatfont_fniu {
+  /* Font ignored in stack */
   text-decoration: line-through;
 }
 
-.__whatfont_fiu {
-  font-weight: bold;
+.__whatfont_panel_content .__whatfont_fiu {
+  /* Font in use in stack */
+  font-style: italic;
 }
 
-.__whatfont_panel>dl>dl>dl {
-  float: left;
-  width: 49%;
+.__whatfont_panel_content .__whatfont_size {
+	float: left;
+	width: 48.6%;
+	zoom: 1;
+}
+
+.__whatfont_panel_content .__whatfont_line_height {
+	margin-left: 50%;
+	width: 48.6%;
+	zoom: 1;
 }
 
 .__whatfont_highlighted {
   cursor: default !important;
+}
+
+.__whatfont_panel dt.__whatfont_typeface {
+  color: white;
+  font-size: 16px;
+}
+
+.__whatfont_type_preview {
+  /* background-image: 
+    -webkit-gradient(linear, 0 0, 0 100%, 
+                      from(#555), 
+                      to(#777)); */	
+  background: #444;
+  box-shadow: 0 0 2px #555, inset 0 0 2px #111;
+  -moz-box-shadow: 0 0 2px #555, inset 0 0 2px #111;
+  -webkit-box-shadow: 0 0 2px #555, inset 0 0 2px #111;
+  border: 1px solid #111;
+  color: #eee;
+	font-size: 1.25em;
+	margin: 0.25em 0;
+	overflow: hidden;
+  padding: 5px 10px;
+  text-shadow: none;
+  -webkit-font-smoothing: subpixel-antialiased;   
+}
+
+.__whatfont_panel_content .__whatfont_font_services {
+	line-height: 1;
+	text-align: right;
+}
+
+ul.__whatfont_font_service {
+	display: inline-block;
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+ul.__whatfont_font_service li {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+}
+
+.__whatfont_service_icon {
+	color: white;
+  display: inline-block;
+  -webkit-mask-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(255,255,255,1)), to(rgba(255,255,255,0.6)));
+}
+
+.__whatfont_service_icon:hover {
+	cursor: pointer;
+}
+
+.__whatfont_service_icon_google {
+
+}
+
+.__whatfont_panel_content .__whatfont_panel_tools {
+  color: #eee;
+  font: bold 11px "Lucida Grande", "Lucida Sans Unicode", verdana, sans-serif;
+  line-height: 12px;
+  margin: 12px 6px 0;
+  padding: 0 4px;
+}
+
+.__whatfont_panel_content .__whatfont_panel_tools .__whatfont_panel_tools_left {
+  float: left;
+  width: 49.5%;
+}
+
+.__whatfont_panel_content .__whatfont_panel_tools .__whatfont_panel_tools_right {
+  margin-left: 50%;
+  text-align: right;
+}
+
+.__whatfont_panel_content .__whatfont_color_info_sample {
+  border: 1px solid #666;
+  display: inline-block;
+  height: 12px;
+  margin-right: 6px;
+  width: 12px;
+  -webkit-transition: border-color 0.2s;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+
+.__whatfont_panel_content .__whatfont_color_info_sample:hover {
+  border-color: #bbb;
+}
+
+.__whatfont_panel_content .__whatfont_panel_tools .__whatfont_tweet_icon {
+  background: url("img/tweet.png") no-repeat left top;
+  display: inline-block;
+  margin: 0;
+  opacity: 0.7;
+  padding-left: 22px;
+  -webkit-transition: opacity 0.3s;
+}
+
+.__whatfont_panel_content .__whatfont_panel_tools .__whatfont_tweet_icon:hover {
+  opacity: 1;
 }
