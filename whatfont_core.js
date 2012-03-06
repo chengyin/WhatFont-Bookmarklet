@@ -172,6 +172,7 @@ function _whatFont() {
 		init: function () {
 			fs.typekit();
 			fs.google();
+			fs.fontdeck();
 		},
 		
 		typekit: function () {
@@ -242,6 +243,37 @@ function _whatFont() {
 					});
 				}
 			}); 
+		},
+		
+		fontdeck: function () {
+			// Fontdeck fonts
+			$("link").each(function (i, l) {
+				var url = $(l).attr("href"), projectId, domain;
+				if (url.indexOf("fontdeck.com") >= 0) {
+					projectId = url.match(/^.*\/(\d+)\.css$/)[1];
+					domain = location.hostname;
+					$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
+						if(!data.errors) {
+							$.each(data.provides, function (i, font) {
+								var fontName = font.name,
+									slug = fontName.replace(/ /g, '-').toLowerCase();
+							
+								fs.CSS_NAME_TO_SLUG[fontName] = slug;
+								fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
+								{
+									name: fontName,
+									services: {}
+								};
+								
+								fs.FONT_DATA[slug].services.Fontdeck = {
+									url: 'http://fontdeck.com/search?q=' + fontName
+								};
+							});
+							
+						}
+					});
+				}
+			});
 		},
 		
 		getFontDataByCSSName: function (cssName) {
@@ -387,6 +419,7 @@ function _whatFont() {
 			
 			panel.FONT_SERVICE_ICON.Typekit = $("<span>").addClass("service_icon service_icon_typekit").text('Typekit');
 			panel.FONT_SERVICE_ICON.Google = $("<span>").addClass("service_icon service_icon_google").text('Google Web Fonts');
+			panel.FONT_SERVICE_ICON.Fontdeck = $("<span>").addClass("service_icon service_icon_fontdeck").text('Fontdeck');
 		},
 		
 		restore: function () {
