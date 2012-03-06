@@ -247,33 +247,53 @@ function _whatFont() {
 		
 		fontdeck: function () {
 			// Fontdeck fonts
+			var projectIds = [],
+				domain = location.hostname;
+			
 			$("link").each(function (i, l) {
-				var url = $(l).attr("href"), projectId, domain;
+				// when loaded directly with stylesheet
+				var url = $(l).attr("href");
 				if (url.indexOf("fontdeck.com") >= 0) {
-					projectId = url.match(/^.*\/(\d+)\.css$/)[1];
-					domain = location.hostname;
-					$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
-						if(!data.errors) {
-							$.each(data.provides, function (i, font) {
-								var fontName = font.name,
-									slug = fontName.replace(/ /g, '-').toLowerCase(),
-									searchTerm = fontName.split(' ')[0],
-									fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + searchTerm;
-								
-								fs.CSS_NAME_TO_SLUG[fontName] = slug;
-								fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
-								{
-									name: fontName,
-									services: {}
-								};
-								
-								fs.FONT_DATA[slug].services.Fontdeck = {
-									url: fontUrl
-								};
-							});
-						}
-					});
+					var pId = url.match(/^.*\/(\d+)\.css$/);
+					if ( pId ) {
+						projectIds.push(pId[1]);
+					}
 				}
+			});
+			
+			$("script").each(function (i, l) {
+				// when loaded with Google font loader
+				var url = $(l).attr("src");
+				if ( typeof url !== 'undefined' && url.indexOf("fontdeck.com") >= 0) {
+					var pId = url.match(/^.*\/(\d+)\.js$/);
+					if ( pId ) {
+						projectIds.push(pId[1]);
+					}
+				}
+			});
+			
+			$.each(projectIds, function(i, projectId){
+				$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
+					if( typeof data !== 'undefined' && typeof data.provides !== 'undefined' ) {
+						$.each(data.provides, function (i, font) {
+							var fontName = font.name,
+								slug = fontName.replace(/ /g, '-').toLowerCase(),
+								searchTerm = fontName.split(' ')[0],
+								fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + searchTerm;
+								
+							fs.CSS_NAME_TO_SLUG[fontName] = slug;
+							fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
+							{
+								name: fontName,
+								services: {}
+							};
+								
+							fs.FONT_DATA[slug].services.Fontdeck = {
+								url: fontUrl
+							};
+						});
+					}
+				});
 			});
 		},
 		
