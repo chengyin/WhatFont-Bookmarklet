@@ -681,8 +681,10 @@ function _whatFont() {
 					e.append(content);
 				}
 				
-				e.attr(attr);
-
+				if ( typeof attr !== 'undefined' ) {
+					e.attr(attr);	
+				} 
+				
 				return e[0];
 			};
 			
