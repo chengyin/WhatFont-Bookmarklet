@@ -257,7 +257,8 @@ function _whatFont() {
 							$.each(data.provides, function (i, font) {
 								var fontName = font.name,
 									slug = fontName.replace(/ /g, '-').toLowerCase(),
-									fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + fontName;
+									searchTerm = fontName.split(' ')[0],
+									fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + searchTerm;
 								
 								fs.CSS_NAME_TO_SLUG[fontName] = slug;
 								fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
