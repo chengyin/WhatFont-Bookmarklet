@@ -256,8 +256,9 @@ function _whatFont() {
 						if(!data.errors) {
 							$.each(data.provides, function (i, font) {
 								var fontName = font.name,
-									slug = fontName.replace(/ /g, '-').toLowerCase();
-							
+									slug = fontName.replace(/ /g, '-').toLowerCase(),
+									fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + fontName;
+								
 								fs.CSS_NAME_TO_SLUG[fontName] = slug;
 								fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
 								{
@@ -266,10 +267,9 @@ function _whatFont() {
 								};
 								
 								fs.FONT_DATA[slug].services.Fontdeck = {
-									url: 'http://fontdeck.com/search?q=' + fontName
+									url: fontUrl
 								};
 							});
-							
 						}
 					});
 				}
