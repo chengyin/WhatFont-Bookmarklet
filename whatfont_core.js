@@ -275,11 +275,12 @@ function _whatFont() {
 			$.each(projectIds, function(i, projectId){
 				$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
 					if( typeof data !== 'undefined' && typeof data.provides !== 'undefined' ) {
+						console.log(data);
 						$.each(data.provides, function (i, font) {
 							var fontName = font.name,
 								slug = fontName.replace(/ /g, '-').toLowerCase(),
 								searchTerm = fontName.split(' ')[0],
-								fontUrl = data.provides.url || 'http://fontdeck.com/search?q=' + searchTerm;
+								fontUrl = font.url || 'http://fontdeck.com/search?q=' + searchTerm;
 								
 							fs.CSS_NAME_TO_SLUG[fontName] = slug;
 							fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
