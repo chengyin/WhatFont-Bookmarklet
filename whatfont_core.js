@@ -275,7 +275,6 @@ function _whatFont() {
 			$.each(projectIds, function(i, projectId){
 				$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
 					if( typeof data !== 'undefined' && typeof data.provides !== 'undefined' ) {
-						console.log(data);
 						$.each(data.provides, function (i, font) {
 							var fontName = font.name,
 								slug = fontName.replace(/ /g, '-').toLowerCase(),
