@@ -172,6 +172,7 @@ function _whatFont() {
 		init: function () {
 			fs.typekit();
 			fs.google();
+			fs.fontdeck();
 		},
 		
 		typekit: function () {
@@ -242,6 +243,58 @@ function _whatFont() {
 					});
 				}
 			}); 
+		},
+		
+		fontdeck: function () {
+			// Fontdeck fonts
+			var projectIds = [],
+				domain = location.hostname;
+			
+			$("link").each(function (i, l) {
+				// when loaded directly with stylesheet
+				var url = $(l).attr("href");
+				if (url.indexOf("fontdeck.com") >= 0) {
+					var pId = url.match(/^.*\/(\d+)\.css$/);
+					if ( pId ) {
+						projectIds.push(pId[1]);
+					}
+				}
+			});
+			
+			$("script").each(function (i, l) {
+				// when loaded with Google font loader
+				var url = $(l).attr("src");
+				if ( typeof url !== 'undefined' && url.indexOf("fontdeck.com") >= 0) {
+					var pId = url.match(/^.*\/(\d+)\.js$/);
+					if ( pId ) {
+						projectIds.push(pId[1]);
+					}
+				}
+			});
+			
+			$.each(projectIds, function(i, projectId){
+				$.getJSON("http://fontdeck.com/api/v1/project-info?project=" + projectId + "&domain=" + domain + "&callback=?", function (data) {
+					if( typeof data !== 'undefined' && typeof data.provides !== 'undefined' ) {
+						$.each(data.provides, function (i, font) {
+							var fontName = font.name,
+								slug = fontName.replace(/ /g, '-').toLowerCase(),
+								searchTerm = fontName.split(' ')[0],
+								fontUrl = font.url || 'http://fontdeck.com/search?q=' + searchTerm;
+								
+							fs.CSS_NAME_TO_SLUG[fontName] = slug;
+							fs.FONT_DATA[slug] = fs.FONT_DATA[slug] || 
+							{
+								name: fontName,
+								services: {}
+							};
+								
+							fs.FONT_DATA[slug].services.Fontdeck = {
+								url: fontUrl
+							};
+						});
+					}
+				});
+			});
 		},
 		
 		getFontDataByCSSName: function (cssName) {
@@ -387,6 +440,7 @@ function _whatFont() {
 			
 			panel.FONT_SERVICE_ICON.Typekit = $("<span>").addClass("service_icon service_icon_typekit").text('Typekit');
 			panel.FONT_SERVICE_ICON.Google = $("<span>").addClass("service_icon service_icon_google").text('Google Web Fonts');
+			panel.FONT_SERVICE_ICON.Fontdeck = $("<span>").addClass("service_icon service_icon_fontdeck").text('Fontdeck');
 		},
 		
 		restore: function () {
@@ -681,8 +735,10 @@ function _whatFont() {
 					e.append(content);
 				}
 				
-				e.attr(attr);
-
+				if ( typeof attr !== 'undefined' ) {
+					e.attr(attr);	
+				} 
+				
 				return e[0];
 			};
 			
