@@ -1,9 +1,202 @@
+/*jslint browser: true, regexp: true, white: true, newcap: false, nomen: true, plusplus: true, vars: true */
+/*global window, jQuery, $ */
+
 function _whatFont() {
-	var $, css, fd, tip, panel, toolbar, stat, ctrl, fs, VER, _wf;
+	'use strict';
 
-	VER = "1.6.99992";
+	var
+	VER = "1.7",
+	
+	$,
+	css,
+	toolbar,
+	panel,
+	ctrl,
+	fs,
+	_wf,
+	TestCanvas,
+	TypeInfo,
+	Tip,
+	tip,
+	defaultFont,
+	typeInfoCache = [];
 
-	/* CSS related */
+
+	TestCanvas = function(typeInfo, text, canvas_options) {
+		if (!TestCanvas.isSupported) {
+			this.data = [];
+			return;
+		}
+
+		this.typeInfo = typeInfo;
+		this.text = text || 'abcdefghijklmnopqrstuvwxyz';
+		this.canvas_options = $.extend(this.canvas_options, canvas_options || {});
+
+		this.canvas = $('<canvas>')[0];
+		this.draw();
+	};
+
+	TestCanvas.isSupported = !!document.createElement("canvas").getContext;
+
+	TestCanvas.prototype = {
+		canvas_options: {
+			fillStyle: 'rgb(0,0,0)',
+			height: 50,
+			size: '40px',
+			textBaseline: 'top',
+			width: 600
+		},
+
+		getFontOption: function() {
+			return this.typeInfo.style + ' ' + this.typeInfo.weight + ' ' + this.canvas_options.size + ' ' + this.typeInfo.fonts;
+		},
+
+		draw: function() {
+			// draw the alphabet on canvas
+			var ctx = this.canvas.getContext('2d');
+
+			$.each(this.canvas_options, function (opt, val) {
+				ctx[opt] = val;
+			});
+
+			ctx.font = this.getFontOption();
+
+			ctx.fillText(this.text, 0, 0);
+			return (this.data = ctx.getImageData(0, 0, this.canvas_options.width, this.canvas_options.height).data);
+		},
+
+		isEqual: function(otherCanvas) {
+			// compare if two pixel arrays are identical
+			var len = this.canvas_options.width * this.canvas_options.height * 4,
+				i, data1 = this.data, data2 = otherCanvas.data; // each pixel is 4 bytes (RGBA)
+
+			for (i = 0; i < len; i += 1) {
+				if (data1[i] !== data2[i]) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+	};
+
+
+
+	TypeInfo = function(element) {
+		this.element = $(element);
+		this.detect();
+
+		this.testCanvas = new TestCanvas(this);
+		this.current = this._current();
+	};
+
+	TypeInfo.prototype = {
+		detect: function() {
+			this.fonts = this.element.css('font-family');
+			this.weight = this.element.css('font-weight');
+			this.style = this.element.css('font-style');
+			this.size = this.element.css('font-size');
+			this.lineHeight = this.element.css('line-height');
+			this.color = this.element.css('color');
+
+			this.variant = this._variant();
+			this.stack = this.fonts.split(/,\s*/);
+		},
+
+		getFullCSS: function() {
+			var props = ['font-family', 'font-weight', 'font-style'], css = {}, p;
+
+			for (p = 0; p < props.length; p++) {
+				css[props[p]] = this.element.css(props[p]);
+			}
+
+			return css;
+		},
+
+		_variant: function() {
+			if (this.weight === 'normal' && this.style === 'normal') {
+				return 'regular';
+			} if (this.weight === 'normal') {
+				return this.style;
+			} if (this.style === 'normal') {
+				return this.weight;
+			}
+
+			return this.weight + ' ' + this.style;
+		},
+
+		_current: function() {
+			// To find out which font is being used, 
+			// we go throught the the whole stack.
+			//
+			// For each font F, first we test if it exist
+			// by create two canvas, one with F and sans-serif
+			// the other with F and serif. By comparing 
+			// the result, we know F exist if we get the
+			// same result from both canvas.
+			//
+			// If the F exist, then we compare the result of F
+			// to the result of the original font stack.
+			//
+
+			var stack = this.stack.slice(0), f,
+				typeInfoSerif, typeInfoSansSerif,
+				canvasSerif, canvasSansSerif,
+				typeInfoDefault, canvasDefault;
+
+			for (f = 0; f < this.stack.length; f++) {
+				typeInfoSerif = $.extend({}, this, {
+					fonts: stack[f] + ' ,serif',
+					stack: [stack[f], 'serif']
+				});
+
+				typeInfoSansSerif = $.extend({}, this, {
+					fonts: stack[f] + ', sans-serif',
+					stack: [stack[f], 'sans-serif']
+				});
+
+				canvasSerif = new TestCanvas(typeInfoSerif);
+				canvasSansSerif = new TestCanvas(typeInfoSansSerif);
+
+				if (canvasSerif.isEqual(canvasSansSerif) && this.testCanvas.isEqual(canvasSerif)) {
+					return stack[f];
+				}
+			}
+
+			// Cannot find any perfect matching font, so we 
+			// have to guess.
+			//
+			// Two possiblities: 1. the browser fallback to 
+			// the default sans-serif or serif. It's impossible
+			// to know what is the actual font, but we can guess
+			// whether it is sans-serif or serif.
+			//
+			// 2. We can't find the font due to subsetting
+			// (eg H&FJ webfont). In this case, we compare the 
+			// default font to the original result, if it doesn't 
+			// match, we blindly guess it is the first font in 
+			// the font stack is being used.
+			//
+			if (defaultFont) {
+				typeInfoDefault = $.extend({}, this, {
+					fonts: defaultFont,
+					stack: [defaultFont]
+				});
+
+				canvasDefault = new TestCanvas(typeInfoDefault);
+
+				// make sure it is not because of sub setting
+				if (this.testCanvas.isEqual(canvasDefault)) {
+					return defaultFont;
+				}
+			}
+
+			return stack[0]; // Can't detected, guess
+		}
+	};
+
+
+
 	css = {
 		STYLE_PRE: '__whatfont_',
 		CSS_URL: "http://chengyinliu.com/wf.css?ver=" + VER,
@@ -32,147 +225,7 @@ function _whatFont() {
 		}
 	};
 
-	/* Font Detector */
-	fd = {
-		ALPHABET: 'abcdefghijklmnopqrstuvwxyz',
-		// default alphabet to draw on canvas
-		FILLSTYLE: 'rgb(0,0,0)',
-		// canvas fill style 
-		HEIGHT: 50,
-		// canvas height in px
-		SIZE: 40,
-		// font size to draw in px
-		TEXTBASELINE: 'top',
-		// canvas text baseline
-		WIDTH: 600,
-		// canvas width in px 
-		HISTORY: {},
-		// cache
-		init: function() {
-			fd.CANVAS_SUPPORT = !! ($("<canvas>")[0].getContext);
-			// detect canvas support for IE8-
-		},
 
-		restore: function() {
-
-		},
-
-		mkTextPixelArray: function(cssfont) {
-			// draw the alphabet on canvas using cssfontfamily
-			var canvas = $('<canvas>')[0],
-			ctx = canvas.getContext('2d');
-
-			canvas.width = fd.WIDTH;
-			canvas.height = fd.HEIGHT;
-
-			ctx.fillStyle = fd.FILLSTYLE;
-			ctx.textBaseline = fd.TEXTBASELINE;
-			ctx.font = cssfont.style + ' ' + cssfont.variant + ' ' + cssfont.weight + ' ' + fd.SIZE + 'px ' + cssfont.family;
-			ctx.fillText(fd.ALPHABET, 0, 0);
-			return ctx.getImageData(0, 0, fd.WIDTH, fd.HEIGHT).data;
-		},
-
-		sameArray: function(a1, a2) {
-			// compare if two pixel arrays are identical
-			var len = fd.WIDTH * fd.HEIGHT * 4,
-			i; // each pixel is 4 bytes (RGBA)
-			for (i = 0; i < len; i += 1) {
-				if (a1[i] !== a2[i]) {
-					return false;
-				}
-			}
-
-			return true;
-		},
-
-		fontInUse: function(cssfont) {
-			// try each font in cssfontfamily list to see which one is used
-			var fonts = cssfont.family.split(','),
-			a0 = fd.mkTextPixelArray(cssfont.family),
-			i = 0,
-			len;
-
-			for (len = fonts.length; i < len; i += 1) {
-				var a1 = fd.mkTextPixelArray(fonts[i]);
-				if (fd.sameArray(a0, a1) && fd.sameArray(fd.mkTextPixelArray({
-					style: cssfont.style,
-					variant: cssfont.variant,
-					weight: cssfont.weight,
-					size: cssfont.size,
-					family: fonts[i] + ',serif'
-				}), fd.mkTextPixelArray({
-					style: cssfont.style,
-					variant: cssfont.variant,
-					weight: cssfont.weight,
-					size: cssfont.size,
-					family: fonts[i] + ',sans-serif'
-				}))) {
-					// rendered fonts match, and font really is installed
-					return $.trim(fonts[i]);
-				}
-			}
-
-			return "(default font)";
-		},
-
-		firstFont: function(cssfontfamily) {
-			// Simple util to get the first font 
-			var rs = $.trim(cssfontfamily.split(',')[0]);
-			return rs;
-		},
-
-		detect: function(elem) {
-			// Main function for detecting on an DOM element
-			var cssfont = {
-				family: $(elem).css('font-family'),
-				style: $(elem).css('font-style'),
-				variant: $(elem).css('font-variant'),
-				weight: $(elem).css('font-weight'),
-				size: $(elem).css('font-size')
-			};
-
-			return (fd.HISTORY[cssfont.family] = fd.HISTORY[cssfont.family] || fd.CANVAS_SUPPORT ? fd.fontInUse(cssfont) : fd.firstFont(cssfont.family));
-		},
-
-		weight: function(elem) {
-			return $(elem).css('font-weight');
-		},
-
-		style: function(elem) {
-			return $(elem).css('font-style');
-		},
-
-		variant: function(elem) {
-			var weight = {
-				'bold': 'Bold'
-			} [fd.weight(elem)] || fd.weight(elem),
-			style = {
-				'italic': 'Italic',
-				'oblique': 'Oblique'
-			} [fd.style(elem)] || fd.style(elem),
-			variant;
-
-			if (weight === 'normal' && style === 'normal') {
-				variant = 'Regular';
-			} else if (weight === 'normal') {
-				variant = style;
-			} else if (style === 'normal') {
-				variant = weight;
-			} else {
-				variant = weight + ' ' + style;
-			}
-
-			return variant;
-		},
-
-		getFontStyle: function(elem) {
-			return {
-				'font-family': $(elem).css('font-family'),
-				'font-style': $(elem).css('font-style'),
-				'font-weight': $(elem).css('font-weight')
-			};
-		}
-	};
 
 	/* Font Services */
 	fs = {
@@ -189,9 +242,8 @@ function _whatFont() {
 		},
 
 		typekit: function() {
-			/* Code for typekit, based on 
-				 https://github.com/typekit/typekit-api-examples/blob/master/bookmarklet/bookmarklet.js
-			*/
+			// Code for typekit, based on 
+			// https://github.com/typekit/typekit-api-examples/blob/master/bookmarklet/bookmarklet.js
 			function findKitId() {
 				// Find Typekit ID
 				var kitId = null;
@@ -323,60 +375,81 @@ function _whatFont() {
 		}
 	};
 
-	/* Tooltip */
-	tip = {
-		TIP: null,
 
+
+	Tip = function() {
+		this.currentCacheId = -1;
+		this.el = $.createElem('div', ['tip', 'elem'], '');
+		this.$el = $(this.el);
+		this.init();
+	};
+
+	Tip.prototype = {
 		init: function() {
-			//Insert Tip
-			tip.TIP = $.createElem('div', ["tip", "elem"], '');
-			$(tip.TIP).appendTo("body");
+			var that = this;
 
-			//Listen to the mouse move
-			$("body *:visible").mousemove(tip.update);
-			// $("body").mousemove(tip.update);
-			$("body").mouseout(tip.hide);
-		},
+			this.$el.appendTo('body');
 
-		restore: function() {
-			$(tip.TIP).remove();
-			$("body :visible").unbind("mousemove", tip.update);
-			$("body").unbind("mousemove", tip.update);
-			$("body").unbind("mouseout", tip.hide);
-		},
+			$('body :visible').on('mousemove.wf', function (e) {
+				that.update($(this), e);
+				that.show();
 
-		hide: function() {
-			$(tip.TIP).hide();
-		},
+				e.stopPropagation();
+			});
 
-		updateText: function(str) {
-			$(tip.TIP).text(str).css('display', 'inline-block');
-		},
-
-		updatePos: function(pos_e) {
-			$(tip.TIP).css({
-				top: pos_e.pageY + 12,
-				left: pos_e.pageX + 12
+			$('body').on('mouseout.wf', function(e) {
+				that.hide();
 			});
 		},
 
-		updateTextPos: function(text, pos_e) {
-			tip.updateText(text);
-			tip.updatePos(pos_e);
+		hide: function() {
+			this.$el.hide();
 		},
 
-		update: function(e) {
-			if (this.tagName === 'IMG') {
-				tip.updateTextPos(fd.detect(this) + " (May be incorrect on images)", e);
-			} else if (this.tagName === 'EMBED') {
-				tip.updateTextPos(fd.detect(this) + " (May be incorrect on Flash)", e);
-			} else {
-				tip.updateTextPos(fd.detect(this), e); // Update the content of the tip
+		show: function() {
+			this.$el.show();
+		},
+
+		update: function(newElement, event) {
+			var cacheId = newElement.data('wfCacheId');
+
+			this.updatePosition(event.pageY, event.pageX);
+
+			if (this.element === newElement) {
+				return;
 			}
 
-			e.stopPropagation();
+			if (!cacheId) {
+				cacheId = typeInfoCache.length;
+				typeInfoCache.push(undefined);
+			}
+
+			this.element = newElement;
+			this.element.data('wfCacheId', cacheId);
+
+			typeInfoCache[cacheId] = this.typeInfo = typeInfoCache[cacheId] || new TypeInfo(newElement);
+
+			this.updateText(this.typeInfo.current);
+		},
+
+		updatePosition: function(top, left) {
+			this.$el.css({
+				top: top + 12,
+				left: left + 12
+			});
+		},
+
+		updateText: function(text) {
+			this.$el.text(text).css('display', 'inline-block');
+		},
+
+		remove: function() {
+			this.$el.remove();
+			$('body :visible').off('mousemove.wf');
+			$('body').off('mouseout.wf');
 		}
 	};
+	
 
 	/* Panel */
 	panel = {
@@ -387,15 +460,15 @@ function _whatFont() {
 			panel.tmpl = (function() {
 				var tmpl = $('<div class="elem panel">' + '<div class="panel_title">' + '<span class="title_text"></span>' + '<a class="close_button" title="Close">&times;</a>' + '</div>' +
 
-				'<div class="panel_content">' + '<ul class="panel_properties">' + '<li>' + '<dl class="font_family">' + '<dt class="panel_label">Font Family</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '</li>' +
+							 '<div class="panel_content">' + '<ul class="panel_properties">' + '<li>' + '<dl class="font_family">' + '<dt class="panel_label">Font Family</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '</li>' +
 
-				'<li>' + '<div class="size_line_height clearfix">' + '<dl class="size section">' + '<dt class="panel_label">Font Size</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '<dl class="line_height">' + '<dt class="panel_label">Line Height</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '</div>' + '</li>' +
+							 '<li>' + '<div class="size_line_height clearfix">' + '<dl class="size section">' + '<dt class="panel_label">Font Size</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '<dl class="line_height">' + '<dt class="panel_label">Line Height</dt>' + '<dd class="panel_value"></dd>' + '</dl>' + '</div>' + '</li>' +
 
-				'<li class="panel_no_border_bottom">' + '<dl class="type_info clearfix">' + '<dt class="panel_label"></dt>' + '<dd class="type_preview">' + "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" + '</dd>' + '</dl>' +
+							 '<li class="panel_no_border_bottom">' + '<dl class="type_info clearfix">' + '<dt class="panel_label"></dt>' + '<dd class="type_preview">' + "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" + '</dd>' + '</dl>' +
 
-				'<div class="font_services panel_label" style="display:none;">' + 'Font Served by ' + '</div>' + '</li>' + '</ul>' +
+							 '<div class="font_services panel_label" style="display:none;">' + 'Font Served by ' + '</div>' + '</li>' + '</ul>' +
 
-				'<div class="panel_tools clearfix">' + '<div class="panel_tools_left">' + '<div class="color_info">' + '<a title="Click to change color format" class="color_info_sample">&nbsp;</a>' + '<span class="color_info_value"></span>' + '</div>' + '</div>' + '<div class="panel_tools_right">' + '<a href="https://twitter.com/share" class="tweet_icon" target="_blank">Tweet</a>' + '</div>' + '</div>' + '</div>' + '</div>');
+							 '<div class="panel_tools clearfix">' + '<div class="panel_tools_left">' + '<div class="color_info">' + '<a title="Click to change color format" class="color_info_sample">&nbsp;</a>' + '<span class="color_info_value"></span>' + '</div>' + '</div>' + '<div class="panel_tools_right">' + '<a href="https://twitter.com/share" class="tweet_icon" target="_blank">Tweet</a>' + '</div>' + '</div>' + '</div>' + '</div>');
 
 				return (function() {
 					return tmpl.clone();
@@ -436,17 +509,17 @@ function _whatFont() {
 			return newPanel;
 		},
 
-		typePreview: function(elem, newPanel) {
+		typePreview: function(typeInfo, newPanel) {
 			var canv = $(newPanel).find('.type_preview');
 
-			canv.css(fd.getFontStyle(elem));
+			canv.css(typeInfo.getFullCSS());
 
 			return newPanel;
 		},
 
-		fontService: function(elem, newPanel) {
+		fontService: function(typeInfo, newPanel) {
 			// Font Service section
-			var fiu = fd.detect(elem),
+			var fiu = typeInfo.current,
 			fontData = fs.getFontDataByCSSName(fiu),
 			fontServices,
 			fontName;
@@ -456,7 +529,7 @@ function _whatFont() {
 			if (fontData) {
 				$.each(fontData.services, function(name, srv) {
 					$("<li>").append(
-					$("<a>").append($(panel.FONT_SERVICE_ICON[name]).clone()).attr("href", srv.url).attr("target", "_blank")).appendTo(fontServices);
+						$("<a>").append($(panel.FONT_SERVICE_ICON[name]).clone()).attr("href", srv.url).attr("target", "_blank")).appendTo(fontServices);
 				});
 
 				$(newPanel).find(".font_services").append(fontServices).show();
@@ -467,48 +540,48 @@ function _whatFont() {
 			return newPanel;
 		},
 
-		fontFam: function(elem, newPanel) {
+		fontFam: function(typeInfo, newPanel) {
 			// Font Family section
-			var fontStack = $(elem).css('font-family').replace(/;/, '').split(/,\s*/),
-			fontInUse = fd.detect(elem),
-			fontInUseFound = false,
-			font,
-			fHTML,
-			ff,
-			fiu,
-			fiuFound;
+			var fontStack = typeInfo.fonts.replace(/;/, '').split(/,\s*/),
+				fontInUse = typeInfo.current,
+				fontInUseFound = false,
+				font,
+				fHTML,
+				ff,
+				fiu,
+				fiuFound;
 
-			ff = $(elem).css('font-family');
-			fiu = fd.detect(elem); // cssName Font in use
-			ff = ff.replace(/;/, '').split(/,\s*/);
-			fiuFound = false;
+				ff = typeInfo.fonts;
+				fiu = typeInfo.current; // cssName Font in use
+				ff = ff.replace(/;/, '').split(/,\s*/);
+				fiuFound = false;
 
-			// Font stack
-			for (font = 0; font < fontStack.length; font += 1) {
-				if (fontStack[font] !== fontInUse) {
-					fontStack[font] = "<span class='" + "fniu" + "'>" + fontStack[font] + "</span>";
-				} else {
-					fontStack[font] = "<span class='" + "fiu" + "'>" + fontStack[font] + "</span>";
-					fontInUseFound = true;
-					break;
+				// Font stack
+				for (font = 0; font < fontStack.length; font += 1) {
+					if (fontStack[font] !== fontInUse) {
+						fontStack[font] = "<span class='" + "fniu" + "'>" + fontStack[font] + "</span>";
+					} else {
+						fontStack[font] = "<span class='" + "fiu" + "'>" + fontStack[font] + "</span>";
+						fontInUseFound = true;
+						break;
+					}
 				}
-			}
 
-			fHTML = fontStack.join(", ") + ";";
-			if (!fontInUseFound) {
-				fHTML += " <span class='" + ".fiu" + "'>" + fontInUse + "</span>";
-			}
+				fHTML = fontStack.join(", ") + ";";
+				if (!fontInUseFound) {
+					fHTML += " <span class='" + ".fiu" + "'>" + fontInUse + "</span>";
+				}
 
-			fHTML = "<div class=" + css.getClassName('fontfamily_list') + ">" + fHTML + "</div>";
+				fHTML = "<div class=" + css.getClassName('fontfamily_list') + ">" + fHTML + "</div>";
 
-			$(newPanel).find(".font_family>dd").html(fHTML);
+				$(newPanel).find(".font_family>dd").html(fHTML);
 
-			return newPanel;
+				return newPanel;
 		},
 
-		sizeLineHeight: function(elem, newPanel) {
-			var size = $(elem).css('font-size'),
-			lh = $(elem).css('line-height');
+		sizeLineHeight: function(typeInfo, newPanel) {
+			var size = typeInfo.size,
+			lh = typeInfo.lineHeight;
 
 			$(newPanel).find(".size>dd").text(size);
 			$(newPanel).find(".line_height>dd").text(lh);
@@ -516,8 +589,8 @@ function _whatFont() {
 			return newPanel;
 		},
 
-		color: function(elem, newPanel) {
-			var rgb_color = $(elem).css("color"),
+		color: function(typeInfo, newPanel) {
+			var rgb_color = typeInfo.color,
 			sample = $(newPanel).find(".color_info_sample"),
 			value = $(newPanel).find(".color_info_value"),
 			re,
@@ -558,29 +631,29 @@ function _whatFont() {
 			} (colors, color_type, value))).click();
 		},
 
-		tweet: function(elem, newPanel) {
+		tweet: function(typeInfo, newPanel) {
 			var tweet_icon = $(newPanel).find(".tweet_icon"),
 			url = tweet_icon.attr("href"),
-			cssName = fd.detect(elem),
+			cssName = typeInfo.current,
 			typeName = fs.getFontNameByCSSName(cssName) || cssName;
 
 			url += '?text=' + encodeURIComponent('I like this typography design with ' + typeName + '.') + '&via=What_Font';
 			tweet_icon.attr("href", url);
 		},
 
-		panelContent: function(elem, newPanel) {
+		panelContent: function(typeInfo, newPanel) {
 			$(['typePreview', 'fontService', 'fontFam', 'sizeLineHeight', 'color', 'tweet']).each(function(i, prop) {
-				panel[prop](elem, newPanel);
+				panel[prop](typeInfo, newPanel);
 			});
 		},
 
-		panelTitle: function(elem, newPanel) {
+		panelTitle: function(typeInfo, newPanel) {
 			// Panel title
-			var cssName = fd.detect(elem),
+			var cssName = typeInfo.current,
 			typeName = fs.getFontNameByCSSName(cssName) || cssName,
-			title_text = typeName + ' - ' + fd.variant(elem);
+			title_text = typeName + ' - ' + typeInfo.variant;
 
-			$(newPanel).find(".title_text").html(title_text).css(fd.getFontStyle(elem));
+			$(newPanel).find(".title_text").html(title_text).css(typeInfo.getFullCSS());
 
 			(function(newPanel) {
 				$(newPanel).find(".close_button").click(function(e) {
@@ -596,10 +669,10 @@ function _whatFont() {
 
 		get: function(elem) {
 			// Create panel
-			var p = panel.tmpl();
+			var p = panel.tmpl(), typeInfo = new TypeInfo(elem);
 
-			panel.panelTitle(elem, p);
-			panel.panelContent(elem, p);
+			panel.panelTitle(typeInfo, p);
+			panel.panelContent(typeInfo, p);
 			panel.convertClassName(p);
 
 			$(p).click(function(e) {
@@ -652,30 +725,21 @@ function _whatFont() {
 		}
 	};
 
-	/* Stat */
-	stat = {
-		API: "http://whatfont.herokuapp.com/v1/",
 
-		init: function() {
-			$("body :visible").click(stat.add);
-		},
+	function getDefaultFont() {
+		var random = $('<p>').css('font-family', 'S0m3F0n7'),
+		serif = $('<p>').css('font-family', 'serif'),
+		sansSerif = $('<p>').css('font-family', 'sans-serif'),
+		testCanvasRandom = new TestCanvas(new TypeInfo(random)),
+		testCanvasSerif = new TestCanvas(new TypeInfo(serif)),
+		testCanvasSansSerif = new TestCanvas(new TypeInfo(sansSerif));
 
-		add: function(e) {
-			// Handle click event
-			// Send query to server
-			// (Event handler)
-			var url = encodeURIComponent(document.URL),
-			top = e.pageY,
-			left = e.pageX,
-			stack = encodeURIComponent($(this).css('font-family')),
-			cssName = encodeURIComponent(fd.detect(this)),
-			font = encodeURIComponent(fs.getFontNameByCSSName(cssName) || cssName);
-
-			$.getJSON(stat.API + "record?method=post" + "&url=" + url + "&top=" + top + "&left=" + left + "&stack=" + stack + "&cssname=" + cssName + "&font=" + font, function(res) {
-				console.log(res);
-			});
+		if (testCanvasRandom.isEqual(testCanvasSerif)) {
+			defaultFont = 'serif';
+		} else {
+			defaultFont = 'sans-serif';
 		}
-	};
+	}
 
 	/* Controller */
 	ctrl = {
@@ -692,15 +756,14 @@ function _whatFont() {
 			$("body :visible").unbind('mousemove', ctrl.updateTip);
 			$("body :visible").unbind('click', ctrl.pinPanel);
 
-			fd.restore();
 			toolbar.restore();
-			tip.restore();
+			tip.remove();
 			panel.restore();
 			css.restore();
 
 			$("body").unbind("keydown", ctrl.shortcut);
 
-			_WHATFONT = false;
+			window._WHATFONT = false;
 		},
 
 		init: function() {
@@ -710,13 +773,13 @@ function _whatFont() {
 				$ = jQuery;
 			}
 
-			loaded = (typeof _WHATFONT !== 'undefined') && _WHATFONT;
+			loaded = (typeof window._WHATFONT !== 'undefined') && window._WHATFONT;
 
 			if (loaded || ! $) {
 				return false;
 			}
 
-			_WHATFONT = true;
+			window._WHATFONT = true;
 
 			$.createElem = function(tag, className, content, attr) {
 				// Shortcut for generating DOM element
@@ -747,13 +810,13 @@ function _whatFont() {
 				return e[0];
 			};
 
+			getDefaultFont();
+
 			css.init();
-			fd.init();
-			tip.init();
+			tip = new Tip();
 			panel.init();
 			toolbar.init();
 			fs.init();
-			stat.init();
 
 			$("body").keydown(ctrl.shortcut);
 		}
