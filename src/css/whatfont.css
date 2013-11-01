@@ -27,12 +27,12 @@
   border-left: 0px solid black;
   border-right: 0px solid black;
   border-top: 0px solid black;
-  border-radius: none;
-  -moz-border-radius: none;
-  -webkit-border-radius: none;
+  border-radius: 0;
+  -moz-border-radius: 0;
+  -webkit-border-radius: 0;
   bottom: auto;
   box-shadow: none;
-  -moz-border-radius: none;
+  -moz-border-radius: 0;
   -webkit-box-shadow: none;
   clear: none;
 	color: inherit;
