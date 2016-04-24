@@ -199,7 +199,7 @@ function _whatFont() {
 
 	css = {
 		STYLE_PRE: '__whatfont_',
-		CSS_URL: "http://chengyinliu.com/wf.css?ver=" + VER,
+		CSS_URL: "https://cdn.rawgit.com/chengyin/WhatFont-Bookmarklet/master/src/css/whatfont.css?ver=" + VER,
 		LINK: null,
 
 		init: function() {
